@@ -1,0 +1,16 @@
+{
+  "API_TYPE": "azure",
+  "API_base": "<YOUR-API-ENDPOINT>",
+  "API_VERSION": "2023-07-01-preview",
+  "API_KEY": "<YOUR-API-KEY>",
+  "model": {
+    "GPT-3.5": {
+      "model_name": "<YOUR-DEPLOYMENT-NAME>",
+      "available": true
+    },
+    "GPT-4": {
+      "model_name": "<YOUR-DEPLOYMENT-NAME>",
+      "available": true
+    }
+  }
+}
