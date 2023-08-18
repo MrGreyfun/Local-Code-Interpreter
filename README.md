@@ -46,7 +46,7 @@ Please Note:
     - `gpt-3.5-turbo-0613`
     - `gpt-4-0613`
 
-    Older versions of the models will not work. Make sure you select one of these models for successful execution.
+    Older versions of the models will not work. 
 
     For Azure OpenAI service users:
     - Set the `model_name` as your deployment name.
