@@ -1,0 +1,4 @@
+src/*.json
+src/work_dir
+.idea
+__pycache__
