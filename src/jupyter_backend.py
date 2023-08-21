@@ -93,3 +93,10 @@ if not os.path.exists('work_dir'):
 os.chdir('work_dir')
 '''
 execute_code_(init_code)
+
+
+def restart_jupyter_backend():
+    global kernel_client, kernel_manager
+    kernel_client.shutdown()
+    kernel_manager, kernel_client = jupyter_client.manager.start_new_kernel(kernel_name='python3')
+    execute_code_(init_code)
