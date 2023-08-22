@@ -120,13 +120,14 @@ if __name__ == '__main__':
         Reference: https://www.gradio.app/guides/creating-a-chatbot-fast
         """
         # UI components
-        chatbot = gr.Chatbot([], elem_id="chatbot", label="Local Code Interpreter").style(height=750)
+        chatbot = gr.Chatbot([], elem_id="chatbot", label="Local Code Interpreter", height=750)
         with gr.Row():
             with gr.Column(scale=0.85):
                 text_box = gr.Textbox(
                     show_label=False,
                     placeholder="Enter text and press enter, or upload a file",
-                ).style(container=False)
+                    container=False
+                )
             with gr.Column(scale=0.15, min_width=0):
                 file_upload_button = gr.UploadButton("📁", file_types=['file'])
 
