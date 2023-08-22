@@ -11,7 +11,7 @@ OpenAI's Code Interpreter plugin for ChatGPT is a revolutionary feature that all
 
 - **Seamless Experience**: Say goodbye to file size restrictions and internet issues while uploading. With Local Code Interpreter, you're in full control.
 
-- **GPT-3.5 Availability**: While official Code interpreter is only available for GPT-4 model, the Local Code Interpreter offers the flexibility to switch between both GPT-3.5 and GPT-4 models.
+- **GPT-3.5 Availability**: While official Code Interpreter is only available for GPT-4 model, the Local Code Interpreter offers the flexibility to switch between both GPT-3.5 and GPT-4 models.
 
 - **Enhanced Data Security**: Keep your data more secure by running code locally, minimizing data transfer over the internet.
 

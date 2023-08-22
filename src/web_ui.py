@@ -71,6 +71,19 @@ def undo_upload_file(history):
         return history, gr.Button.update(interactive=False)
 
 
+def restart(history):
+    global bot_backend_log
+    bot_backend_log = BotBackendLog()
+    history.clear()
+    return (
+        history,
+        gr.Textbox.update(value="", interactive=False),
+        gr.Button.update(interactive=False),
+        gr.Button.update(interactive=False),
+        gr.Button.update(interactive=False)
+    )
+
+
 def bot(history):
     global bot_backend_log
     gpt_api_log = bot_backend_log.gpt_api_log
@@ -106,7 +119,8 @@ if __name__ == '__main__':
         """
         Reference: https://www.gradio.app/guides/creating-a-chatbot-fast
         """
-        chatbot = gr.Chatbot([], elem_id="chatbot").style(height=750)
+        # UI components
+        chatbot = gr.Chatbot([], elem_id="chatbot", label="Local Code Interpreter").style(height=750)
         with gr.Row():
             with gr.Column(scale=0.85):
                 text_box = gr.Textbox(
@@ -117,22 +131,38 @@ if __name__ == '__main__':
                 file_upload_button = gr.UploadButton("📁", file_types=['file'])
 
         with gr.Row(equal_height=True):
-            with gr.Column(scale=0.85):
+            with gr.Column(scale=0.7):
                 check_box = gr.Checkbox(label="Using GPT-4", interactive=config['model']['GPT-4']['available'])
                 check_box.change(fn=switch_to_gpt4, inputs=check_box)
             with gr.Column(scale=0.15, min_width=0):
+                restart_button = gr.Button(value='🔄 Restart')
+            with gr.Column(scale=0.15, min_width=0):
                 undo_file_button = gr.Button(value="↩️Undo upload file", interactive=False)
 
+        # Components function binding
         txt_msg = text_box.submit(add_text, [chatbot, text_box], [chatbot, text_box], queue=False).then(
             bot, chatbot, chatbot
         )
         txt_msg.then(lambda: gr.update(interactive=True), None, [text_box], queue=False)
         txt_msg.then(lambda: gr.Button.update(interactive=False), None, [undo_file_button], queue=False)
+
         file_msg = file_upload_button.upload(add_file, [chatbot, file_upload_button], [chatbot], queue=False).then(
             bot, chatbot, chatbot
         )
         file_msg.then(lambda: gr.Button.update(interactive=True), None, [undo_file_button], queue=False)
+
         undo_file_button.click(fn=undo_upload_file, inputs=[chatbot], outputs=[chatbot, undo_file_button])
+
+        restart_button.click(
+            fn=restart, inputs=[chatbot],
+            outputs=[chatbot, text_box, restart_button, file_upload_button, undo_file_button]
+        ).then(
+            fn=restart_jupyter_backend, inputs=None, outputs=None, queue=False
+        ).then(
+            fn=lambda: (gr.Textbox.update(interactive=True), gr.Button.update(interactive=True),
+                        gr.Button.update(interactive=True)),
+            inputs=None, outputs=[text_box, restart_button, file_upload_button], queue=False
+        )
 
     block.queue()
     block.launch(inbrowser=True)
