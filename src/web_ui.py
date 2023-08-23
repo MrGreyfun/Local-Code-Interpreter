@@ -34,7 +34,7 @@ def add_file(history, file):
     path = file.name
     filename = os.path.basename(path)
 
-    shutil.copy(path, 'work_dir')
+    shutil.copy(path, bot_backend_log.jupyter_work_dir)
 
     bot_conversation = [f'📁[{filename}]', None]
     gpt_conversation = {'role': 'system', 'content': f'User uploaded a file: {filename}'}
@@ -73,7 +73,6 @@ def undo_upload_file(history):
 
 def restart(history):
     global bot_backend_log
-    bot_backend_log = BotBackendLog()
     history.clear()
     return (
         history,
@@ -102,7 +101,7 @@ def bot(history):
                 chunk=chunk,
                 history=history,
                 bot_backend_log=bot_backend_log,
-                function_dict=available_functions
+                function_dict=bot_backend_log.jupyter_kernel.available_functions
             )
             yield history
             if weather_exit:
@@ -158,7 +157,7 @@ if __name__ == '__main__':
             fn=restart, inputs=[chatbot],
             outputs=[chatbot, text_box, restart_button, file_upload_button, undo_file_button]
         ).then(
-            fn=restart_jupyter_backend, inputs=None, outputs=None, queue=False
+            fn=bot_backend_log.restart, inputs=None, outputs=None, queue=False
         ).then(
             fn=lambda: (gr.Textbox.update(interactive=True), gr.Button.update(interactive=True),
                         gr.Button.update(interactive=True)),

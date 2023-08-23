@@ -1,4 +1,3 @@
-from jupyter_backend import *
 from utils import *
 import base64
 import copy
@@ -15,7 +14,7 @@ def chat_completion(bot_backend_log):
     return response
 
 
-def send_output(content_to_display, history):
+def send_output(content_to_display, history, unique_id):
     images, text = [], []
 
     # terminal output
@@ -23,8 +22,7 @@ def send_output(content_to_display, history):
     for mark, out_str in content_to_display:
         if mark in ('stdout', 'execute_result_text', 'display_text'):
             text.append(out_str)
-        elif mark in (
-                'execute_result_png', 'execute_result_jpeg', 'display_png', 'display_jpeg'):
+        elif mark in ('execute_result_png', 'execute_result_jpeg', 'display_png', 'display_jpeg'):
             if 'png' in mark:
                 images.append(('png', out_str))
             else:
@@ -41,9 +39,10 @@ def send_output(content_to_display, history):
     # image output
     for idx, (filetype, img) in enumerate(images):
         image_bytes = base64.b64decode(img)
-        if not os.path.exists('temp'):
-            os.mkdir('temp')
-        path = f'temp/{idx}.{filetype}'
+        temp_path = f'temp_{unique_id}'
+        if not os.path.exists(temp_path):
+            os.mkdir(temp_path)
+        path = f'{temp_path}/{idx}.{filetype}'
         with open(path, 'wb') as f:
             f.write(image_bytes)
         history.append([None, (path,)])
@@ -220,7 +219,9 @@ def parse_response(chunk, history, bot_backend_log, function_dict):
                         }
                     )
 
-                    send_output(content_to_display=content_to_display, history=history)
+                    send_output(
+                        content_to_display=content_to_display, history=history, unique_id=bot_backend_log.unique_id
+                    )
 
                 except json.JSONDecodeError:
                     history.append(

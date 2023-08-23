@@ -1,6 +1,7 @@
 import json
 import openai
 import os
+from jupyter_backend import *
 
 functions = [
     {
@@ -49,15 +50,23 @@ def config_openai_api(api_type, api_base, api_version, api_key):
 
 class BotBackendLog:
     def __init__(self):
+        self.unique_id = hash(id(self))
+        self.jupyter_work_dir = f'work_dir_{self.unique_id}'
+        self.jupyter_kernel = JupyterKernel(work_dir=self.jupyter_work_dir)
         self.gpt_model_choice = "GPT-3.5"
         self.revocable_files = []
-        self.conversation = [
-            {'role': 'system', 'content': system_msg},
-        ]
-
+        self._init_conversation()
         self._init_api_config()
         self._init_kwargs_for_chat_completion()
         self._init_gpt_api_log()
+
+    def _init_conversation(self):
+        first_system_msg = {'role': 'system', 'content': system_msg}
+        if hasattr(self, 'conversation'):
+            self.conversation.clear()
+            self.conversation.append(first_system_msg)
+        else:
+            self.conversation = [first_system_msg]
 
     def _init_api_config(self):
         self.config = get_config()
@@ -100,3 +109,9 @@ class BotBackendLog:
     def update_gpt_model_choice(self, model_choice):
         self.gpt_model_choice = model_choice
         self._init_kwargs_for_chat_completion()
+
+    def restart(self):
+        self.revocable_files.clear()
+        self._init_conversation()
+        self._init_gpt_api_log()
+        self.jupyter_kernel.restart_jupyter_kernel()
