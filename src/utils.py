@@ -51,7 +51,7 @@ def config_openai_api(api_type, api_base, api_version, api_key):
 class BotBackendLog:
     def __init__(self):
         self.unique_id = hash(id(self))
-        self.jupyter_work_dir = f'work_dir_{self.unique_id}'
+        self.jupyter_work_dir = f'cache/work_dir_{self.unique_id}'
         self.jupyter_kernel = JupyterKernel(work_dir=self.jupyter_work_dir)
         self.gpt_model_choice = "GPT-3.5"
         self.revocable_files = []

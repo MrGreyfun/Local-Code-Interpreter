@@ -39,7 +39,7 @@ def send_output(content_to_display, history, unique_id):
     # image output
     for idx, (filetype, img) in enumerate(images):
         image_bytes = base64.b64decode(img)
-        temp_path = f'temp_{unique_id}'
+        temp_path = f'cache/temp_{unique_id}'
         if not os.path.exists(temp_path):
             os.mkdir(temp_path)
         path = f'{temp_path}/{idx}.{filetype}'

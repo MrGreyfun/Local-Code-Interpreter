@@ -1,5 +1,4 @@
 src/*.json
-src/work_dir_*
-src/temp_*
+src/cache
 .idea
 __pycache__

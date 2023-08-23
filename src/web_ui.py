@@ -3,16 +3,28 @@ import gradio as gr
 import shutil
 
 
-def switch_to_gpt4(whether_switch):
-    global bot_backend_log
+def initialization(state_dict):
+    if not os.path.exists('cache'):
+        os.mkdir('cache')
+    if state_dict["bot_backend_log"] is None:
+        state_dict["bot_backend_log"] = BotBackendLog()
+
+
+def get_bot_backend_log(state_dict):
+    return state_dict["bot_backend_log"]
+
+
+def switch_to_gpt4(state_dict, whether_switch):
+    bot_backend_log = get_bot_backend_log(state_dict)
     if whether_switch:
         bot_backend_log.update_gpt_model_choice("GPT-4")
     else:
         bot_backend_log.update_gpt_model_choice("GPT-3.5")
+    return state_dict
 
 
-def add_text(history, text: str):
-    global bot_backend_log
+def add_text(state_dict, history, text: str):
+    bot_backend_log = get_bot_backend_log(state_dict)
     conversation = bot_backend_log.conversation
     revocable_files = bot_backend_log.revocable_files
     gpt_api_log = bot_backend_log.gpt_api_log
@@ -24,11 +36,11 @@ def add_text(history, text: str):
     )
     gpt_api_log['finish_reason'] = 'new_input'
 
-    return history, gr.update(value="", interactive=False)
+    return state_dict, history, gr.update(value="", interactive=False)
 
 
-def add_file(history, file):
-    global bot_backend_log
+def add_file(state_dict, history, file):
+    bot_backend_log = get_bot_backend_log(state_dict)
     revocable_files = bot_backend_log.revocable_files
     conversation = bot_backend_log.conversation
     path = file.name
@@ -47,11 +59,11 @@ def add_file(history, file):
             'gpt_conversation': gpt_conversation
         }
     )
-    return history
+    return state_dict, history
 
 
-def undo_upload_file(history):
-    global bot_backend_log
+def undo_upload_file(state_dict, history):
+    bot_backend_log = get_bot_backend_log(state_dict)
     revocable_files = bot_backend_log.revocable_files
     conversation = bot_backend_log.conversation
 
@@ -66,13 +78,12 @@ def undo_upload_file(history):
         del revocable_files[-1]
 
     if revocable_files:
-        return history, gr.Button.update(interactive=True)
+        return state_dict, history, gr.Button.update(interactive=True)
     else:
-        return history, gr.Button.update(interactive=False)
+        return state_dict, history, gr.Button.update(interactive=False)
 
 
-def restart(history):
-    global bot_backend_log
+def restart_ui(history):
     history.clear()
     return (
         history,
@@ -83,8 +94,14 @@ def restart(history):
     )
 
 
-def bot(history):
-    global bot_backend_log
+def restart_bot_backend_log(state_dict):
+    bot_backend_log = get_bot_backend_log(state_dict)
+    bot_backend_log.restart()
+    return state_dict
+
+
+def bot(state_dict, history):
+    bot_backend_log = get_bot_backend_log(state_dict)
     gpt_api_log = bot_backend_log.gpt_api_log
 
     while gpt_api_log['finish_reason'] in ('new_input', 'function_call'):
@@ -111,14 +128,13 @@ def bot(history):
 
 
 if __name__ == '__main__':
-    bot_backend_log = BotBackendLog()
-    config = bot_backend_log.config
-
+    config = get_config()
     with gr.Blocks(theme=gr.themes.Base()) as block:
         """
         Reference: https://www.gradio.app/guides/creating-a-chatbot-fast
         """
         # UI components
+        state = gr.State(value={"bot_backend_log": None})
         chatbot = gr.Chatbot([], elem_id="chatbot", label="Local Code Interpreter", height=750)
         with gr.Row():
             with gr.Column(scale=0.85):
@@ -133,36 +149,40 @@ if __name__ == '__main__':
         with gr.Row(equal_height=True):
             with gr.Column(scale=0.7):
                 check_box = gr.Checkbox(label="Using GPT-4", interactive=config['model']['GPT-4']['available'])
-                check_box.change(fn=switch_to_gpt4, inputs=check_box)
+                check_box.change(fn=switch_to_gpt4, inputs=[state, check_box], outputs=[state])
             with gr.Column(scale=0.15, min_width=0):
                 restart_button = gr.Button(value='🔄 Restart')
             with gr.Column(scale=0.15, min_width=0):
                 undo_file_button = gr.Button(value="↩️Undo upload file", interactive=False)
 
         # Components function binding
-        txt_msg = text_box.submit(add_text, [chatbot, text_box], [chatbot, text_box], queue=False).then(
-            bot, chatbot, chatbot
+        txt_msg = text_box.submit(add_text, [state, chatbot, text_box], [state, chatbot, text_box], queue=False).then(
+            bot, [state, chatbot], chatbot
         )
         txt_msg.then(lambda: gr.update(interactive=True), None, [text_box], queue=False)
         txt_msg.then(lambda: gr.Button.update(interactive=False), None, [undo_file_button], queue=False)
 
-        file_msg = file_upload_button.upload(add_file, [chatbot, file_upload_button], [chatbot], queue=False).then(
-            bot, chatbot, chatbot
+        file_msg = file_upload_button.upload(
+            add_file, [state, chatbot, file_upload_button], [state, chatbot], queue=False
+        ).then(
+            bot, [state, chatbot], chatbot
         )
         file_msg.then(lambda: gr.Button.update(interactive=True), None, [undo_file_button], queue=False)
 
-        undo_file_button.click(fn=undo_upload_file, inputs=[chatbot], outputs=[chatbot, undo_file_button])
+        undo_file_button.click(fn=undo_upload_file, inputs=[state, chatbot], outputs=[state, chatbot, undo_file_button])
 
         restart_button.click(
-            fn=restart, inputs=[chatbot],
+            fn=restart_ui, inputs=[chatbot],
             outputs=[chatbot, text_box, restart_button, file_upload_button, undo_file_button]
         ).then(
-            fn=bot_backend_log.restart, inputs=None, outputs=None, queue=False
+            fn=restart_bot_backend_log, inputs=[state], outputs=[state], queue=False
         ).then(
             fn=lambda: (gr.Textbox.update(interactive=True), gr.Button.update(interactive=True),
                         gr.Button.update(interactive=True)),
             inputs=None, outputs=[text_box, restart_button, file_upload_button], queue=False
         )
+
+        block.load(fn=initialization, inputs=[state])
 
     block.queue()
     block.launch(inbrowser=True)
