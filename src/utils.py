@@ -111,6 +111,10 @@ class BotBackendLog:
         self._init_kwargs_for_chat_completion()
 
     def restart(self):
+        for filename in os.listdir(self.jupyter_work_dir):
+            os.remove(
+                os.path.join(self.jupyter_work_dir, filename)
+            )
         self.revocable_files.clear()
         self._init_conversation()
         self._init_gpt_api_log()
