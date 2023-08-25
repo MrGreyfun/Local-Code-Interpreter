@@ -1,5 +1,3 @@
-import os.path
-
 from bot_backend import *
 import gradio as gr
 import shutil
