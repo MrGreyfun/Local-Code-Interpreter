@@ -45,7 +45,12 @@ def send_output(content_to_display, history, unique_id):
         path = f'{temp_path}/{idx}.{filetype}'
         with open(path, 'wb') as f:
             f.write(image_bytes)
-        history.append([None, (path,)])
+        history.append(
+            [
+                None,
+                f'<img src=\"file={path}\" style=\'width: 600px; max-width:none; max-height:none\'>'
+            ]
+        )
 
 
 def parse_json(function_args: str, finished: bool):
