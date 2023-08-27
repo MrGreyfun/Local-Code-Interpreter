@@ -1,12 +1,12 @@
 from utils import *
 import base64
-import copy
+import time
 
 
-def chat_completion(bot_backend_log):
-    model_choice = bot_backend_log.gpt_model_choice
-    config = bot_backend_log.config
-    kwargs_for_chat_completion = bot_backend_log.kwargs_for_chat_completion
+def chat_completion(bot_backend: BotBackend):
+    model_choice = bot_backend.gpt_model_choice
+    config = bot_backend.config
+    kwargs_for_chat_completion = bot_backend.kwargs_for_chat_completion
 
     assert config['model'][model_choice]['available'], f"{model_choice} is not available for you API key"
 
@@ -14,7 +14,7 @@ def chat_completion(bot_backend_log):
     return response
 
 
-def send_output(content_to_display, history, unique_id):
+def add_function_response_to_bot_history(content_to_display, history, unique_id):
     images, text = [], []
 
     # terminal output
@@ -37,12 +37,12 @@ def send_output(content_to_display, history, unique_id):
         history.append([None, f'✔️Terminal output:\n```shell\n{text}\n```'])
 
     # image output
-    for idx, (filetype, img) in enumerate(images):
+    for filetype, img in images:
         image_bytes = base64.b64decode(img)
         temp_path = f'cache/temp_{unique_id}'
         if not os.path.exists(temp_path):
             os.mkdir(temp_path)
-        path = f'{temp_path}/{idx}.{filetype}'
+        path = f'{temp_path}/{hash(time.time())}.{filetype}'
         with open(path, 'wb') as f:
             f.write(image_bytes)
         history.append(
@@ -116,18 +116,17 @@ def parse_json(function_args: str, finished: bool):
         return None
 
 
-def parse_response(chunk, history, bot_backend_log, function_dict):
+def parse_response(chunk, history, bot_backend: BotBackend):
     """
     :return: history, whether_exit
     """
-    gpt_api_log = bot_backend_log.gpt_api_log
-    conversation = bot_backend_log.conversation
+    function_dict = bot_backend.jupyter_kernel.available_functions
 
     whether_exit = False
     if chunk['choices']:
         delta = chunk['choices'][0]['delta']
         if 'role' in delta:
-            gpt_api_log['assistant_role_name'] = delta['role']
+            bot_backend.set_assistant_role_name(assistant_role_name=delta['role'])
         if 'content' in delta:
             if delta['content'] is not None:
                 # null value of content often occur in function call:
@@ -139,19 +138,19 @@ def parse_response(chunk, history, bot_backend_log, function_dict):
                 #         "arguments": ""
                 #       }
                 #     }
-                gpt_api_log['content'] += delta.get('content', '')
-                history[-1][1] = gpt_api_log['content']
+                bot_backend.add_content(content=delta.get('content', ''))
+                history[-1][1] = bot_backend.content
 
         if 'function_call' in delta:
             if 'name' in delta['function_call']:
-                gpt_api_log['function_name'] = delta['function_call']['name']
-                gpt_api_log['content_history'] = copy.deepcopy(history)
-                if gpt_api_log['function_name'] not in function_dict:
+                bot_backend.set_function_name(function_name=delta['function_call']['name'])
+                bot_backend.copy_current_bot_history(bot_history=history)
+                if bot_backend.function_name not in function_dict:
                     history.append(
                         [
                             None,
                             f'GPT attempted to call a function that does '
-                            f'not exist: {gpt_api_log["function_name"]}\n '
+                            f'not exist: {bot_backend.function_name}\n '
                         ]
                     )
                     whether_exit = True
@@ -159,78 +158,65 @@ def parse_response(chunk, history, bot_backend_log, function_dict):
                     return history, whether_exit
 
             if 'arguments' in delta['function_call']:
-                gpt_api_log['function_args_str'] += delta['function_call']['arguments']
+                bot_backend.add_function_args_str(function_args_str=delta['function_call']['arguments'])
 
-                if gpt_api_log['function_name'] == 'python':  # handle hallucinatory function calls
+                if bot_backend.function_name == 'python':  # handle hallucinatory function calls
                     '''
                     In practice, we have noticed that GPT, especially GPT-3.5, may occasionally produce hallucinatory
                     function calls. These calls involve a non-existent function named `python` with arguments consisting 
                     solely of raw code text (not a JSON format).
                     '''
-                    temp_code_str = gpt_api_log['function_args_str']
-                    gpt_api_log['display_code_block'] = "\n🔴Working:\n```python\n{}\n```".format(temp_code_str)
-                    history = copy.deepcopy(gpt_api_log['content_history'])
-                    history[-1][1] += gpt_api_log['display_code_block']
+                    temp_code_str = bot_backend.function_args_str
+                    bot_backend.update_display_code_block(
+                        display_code_block="\n🔴Working:\n```python\n{}\n```".format(temp_code_str)
+                    )
+                    history = copy.deepcopy(bot_backend.bot_history)
+                    history[-1][1] += bot_backend.display_code_block
                 else:
-                    temp_code_str = parse_json(function_args=gpt_api_log['function_args_str'], finished=False)
+                    temp_code_str = parse_json(function_args=bot_backend.function_args_str, finished=False)
                     if temp_code_str is not None:
-                        gpt_api_log['display_code_block'] = "\n🔴Working:\n```python\n{}\n```".format(
-                            temp_code_str
+                        bot_backend.update_display_code_block(
+                            display_code_block="\n🔴Working:\n```python\n{}\n```".format(
+                                temp_code_str
+                            )
                         )
-                        history = copy.deepcopy(gpt_api_log['content_history'])
-                        history[-1][1] += gpt_api_log['display_code_block']
+                        history = copy.deepcopy(bot_backend.bot_history)
+                        history[-1][1] += bot_backend.display_code_block
 
         if chunk['choices'][0]['finish_reason'] is not None:
-            if gpt_api_log['content']:
-                conversation.append(
-                    {'role': gpt_api_log['assistant_role_name'], 'content': gpt_api_log['content']}
-                )
+            if bot_backend.content:
+                bot_backend.add_gpt_response_content_message()
 
-            gpt_api_log['finish_reason'] = chunk['choices'][0]['finish_reason']
-            if gpt_api_log['finish_reason'] == 'function_call':
+            bot_backend.update_finish_reason(finish_reason=chunk['choices'][0]['finish_reason'])
+            if bot_backend.finish_reason == 'function_call':
                 try:
-                    if gpt_api_log['function_name'] == 'python':
-                        code_str = gpt_api_log['function_args_str']
+                    if bot_backend.function_name == 'python':
+                        code_str = bot_backend.function_args_str
                     else:
-                        code_str = parse_json(function_args=gpt_api_log['function_args_str'], finished=True)
+                        code_str = parse_json(function_args=bot_backend.function_args_str, finished=True)
                         if code_str is None:
                             raise json.JSONDecodeError
-                    gpt_api_log['display_code_block'] = "\n🟢Working:\n```python\n{}\n```".format(code_str)
-                    history = copy.deepcopy(gpt_api_log['content_history'])
-                    history[-1][1] += gpt_api_log['display_code_block']
+                    bot_backend.update_display_code_block(
+                        display_code_block="\n🟢Working:\n```python\n{}\n```".format(code_str)
+                    )
+                    history = copy.deepcopy(bot_backend.bot_history)
+                    history[-1][1] += bot_backend.display_code_block
 
                     # function response
                     text_to_gpt, content_to_display = function_dict[
-                        gpt_api_log['function_name']
+                        bot_backend.function_name
                     ](code_str)
 
                     # add function call to conversion
-                    conversation.append(
-                        {
-                            "role": gpt_api_log["assistant_role_name"],
-                            "name": gpt_api_log["function_name"],
-                            "content": gpt_api_log["function_args_str"],
-                        }
-                    )
+                    bot_backend.add_function_call_response_message(function_response=text_to_gpt, save_tokens=True)
 
-                    if len(text_to_gpt) > 500:
-                        text_to_gpt = f'{text_to_gpt[:200]}\n[Output too much, the middle part output is omitted]\n ' \
-                                      f'End part of output:\n{text_to_gpt[-200:]}'
-                    conversation.append(
-                        {
-                            "role": "function",
-                            "name": gpt_api_log["function_name"],
-                            "content": text_to_gpt,
-                        }
-                    )
-
-                    send_output(
-                        content_to_display=content_to_display, history=history, unique_id=bot_backend_log.unique_id
+                    add_function_response_to_bot_history(
+                        content_to_display=content_to_display, history=history, unique_id=bot_backend.unique_id
                     )
 
                 except json.JSONDecodeError:
                     history.append(
-                        [None, f"GPT generate wrong function args: {gpt_api_log['function_args_str']}"]
+                        [None, f"GPT generate wrong function args: {bot_backend.function_args_str}"]
                     )
                     whether_exit = True
                     return history, whether_exit
@@ -239,15 +225,6 @@ def parse_response(chunk, history, bot_backend_log, function_dict):
                     history.append([None, f'Backend error: {e}'])
                     whether_exit = True
                     return history, whether_exit
-
-            gpt_api_log.update(
-                {
-                    "assistant_role_name": "",
-                    "content": "",
-                    "function_name": None,
-                    "function_args_str": "",
-                    "display_code_block": "",
-                }
-            )
+            bot_backend.reset_gpt_response_log_values(exclude=['finish_reason'])
 
     return history, whether_exit

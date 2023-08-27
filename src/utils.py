@@ -1,6 +1,8 @@
 import json
 import openai
 import os
+import copy
+import shutil
 from jupyter_backend import *
 from typing import *
 
@@ -49,8 +51,58 @@ def config_openai_api(api_type, api_base, api_version, api_key):
     openai.api_key = api_key
 
 
-class BotBackendLog:
+class GPTResponseLog:
     def __init__(self):
+        self.assistant_role_name = ''
+        self.content = ''
+        self.function_name = None
+        self.function_args_str = ''
+        self.display_code_block = ''
+        self.finish_reason = 'stop'
+        self.bot_history = None
+
+    def reset_gpt_response_log_values(self, exclude=None):
+        if exclude is None:
+            exclude = []
+
+        attributes = {'assistant_role_name': '',
+                      'content': '',
+                      'function_name': None,
+                      'function_args_str': '',
+                      'display_code_block': '',
+                      'finish_reason': 'stop',
+                      'bot_history': None}
+
+        for attr_name in exclude:
+            del attributes[attr_name]
+        for attr_name, value in attributes.items():
+            setattr(self, attr_name, value)
+
+    def set_assistant_role_name(self, assistant_role_name: str):
+        self.assistant_role_name = assistant_role_name
+
+    def add_content(self, content: str):
+        self.content += content
+
+    def set_function_name(self, function_name: str):
+        self.function_name = function_name
+
+    def copy_current_bot_history(self, bot_history: List):
+        self.bot_history = copy.deepcopy(bot_history)
+
+    def add_function_args_str(self, function_args_str: str):
+        self.function_args_str += function_args_str
+
+    def update_display_code_block(self, display_code_block):
+        self.display_code_block = display_code_block
+
+    def update_finish_reason(self, finish_reason: str):
+        self.finish_reason = finish_reason
+
+
+class BotBackend(GPTResponseLog):
+    def __init__(self):
+        super().__init__()
         self.unique_id = hash(id(self))
         self.jupyter_work_dir = f'cache/work_dir_{self.unique_id}'
         self.jupyter_kernel = JupyterKernel(work_dir=self.jupyter_work_dir)
@@ -59,7 +111,6 @@ class BotBackendLog:
         self._init_conversation()
         self._init_api_config()
         self._init_kwargs_for_chat_completion()
-        self._init_gpt_api_log()
 
     def _init_conversation(self):
         first_system_msg = {'role': 'system', 'content': system_msg}
@@ -67,7 +118,7 @@ class BotBackendLog:
             self.conversation.clear()
             self.conversation.append(first_system_msg)
         else:
-            self.conversation = [first_system_msg]
+            self.conversation: List[Dict] = [first_system_msg]
 
     def _init_api_config(self):
         self.config = get_config()
@@ -96,27 +147,85 @@ class BotBackendLog:
         else:
             self.kwargs_for_chat_completion['model'] = model_name
 
-    def _init_gpt_api_log(self):
-        self.gpt_api_log = {
-            "assistant_role_name": "",
-            "content": "",
-            "function_name": None,
-            "function_args_str": "",
-            "display_code_block": "",
-            "finish_reason": "stop",
-            "content_history": None
-        }
+    def _clear_all_files_in_work_dir(self):
+        for filename in os.listdir(self.jupyter_work_dir):
+            os.remove(
+                os.path.join(self.jupyter_work_dir, filename)
+            )
+
+    def add_gpt_response_content_message(self):
+        self.conversation.append(
+            {'role': self.assistant_role_name, 'content': self.content}
+        )
+
+    def add_text_message(self, user_text):
+        self.conversation.append(
+            {'role': 'user', 'content': user_text}
+        )
+        self.revocable_files.clear()
+        self.update_finish_reason(finish_reason='new_input')
+
+    def add_file_message(self, path, bot_msg):
+        filename = os.path.basename(path)
+        work_dir = self.jupyter_work_dir
+
+        shutil.copy(path, work_dir)
+
+        gpt_msg = {'role': 'system', 'content': f'User uploaded a file: {filename}'}
+        self.conversation.append(gpt_msg)
+        self.revocable_files.append(
+            {
+                'bot_msg': bot_msg,
+                'gpt_msg': gpt_msg,
+                'path': os.path.join(work_dir, filename)
+            }
+        )
+
+    def add_function_call_response_message(self, function_response: str, save_tokens=True):
+        self.conversation.append(
+            {
+                "role": self.assistant_role_name,
+                "name": self.function_name,
+                "content": self.function_args_str
+            }
+        )
+
+        if save_tokens and len(function_response) > 500:
+            function_response = f'{function_response[:200]}\n[Output too much, the middle part output is omitted]\n ' \
+                                f'End part of output:\n{function_response[-200:]}'
+        self.conversation.append(
+            {
+                "role": "function",
+                "name": self.function_name,
+                "content": function_response,
+            }
+        )
+
+    def revoke_file(self):
+        if self.revocable_files:
+            file = self.revocable_files[-1]
+            bot_msg = file['bot_msg']
+            gpt_msg = file['gpt_msg']
+            path = file['path']
+
+            assert self.conversation[-1] is gpt_msg
+            del self.conversation[-1]
+
+            os.remove(path)
+
+            del self.revocable_files[-1]
+
+            return bot_msg
+        else:
+            return None
 
     def update_gpt_model_choice(self, model_choice):
         self.gpt_model_choice = model_choice
         self._init_kwargs_for_chat_completion()
 
     def restart(self):
-        for filename in os.listdir(self.jupyter_work_dir):
-            os.remove(
-                os.path.join(self.jupyter_work_dir, filename)
-            )
+        self._clear_all_files_in_work_dir()
         self.revocable_files.clear()
         self._init_conversation()
-        self._init_gpt_api_log()
+        self.reset_gpt_response_log_values()
         self.jupyter_kernel.restart_jupyter_kernel()

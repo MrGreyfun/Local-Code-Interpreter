@@ -1,93 +1,67 @@
 from bot_backend import *
 import gradio as gr
-import shutil
 
 
 def initialization(state_dict: Dict) -> None:
     if not os.path.exists('cache'):
         os.mkdir('cache')
-    if state_dict["bot_backend_log"] is None:
-        state_dict["bot_backend_log"] = BotBackendLog()
+    if state_dict["bot_backend"] is None:
+        state_dict["bot_backend"] = BotBackend()
 
 
-def get_bot_backend_log(state_dict: Dict) -> BotBackendLog:
-    return state_dict["bot_backend_log"]
+def get_bot_backend(state_dict: Dict) -> BotBackend:
+    return state_dict["bot_backend"]
 
 
 def switch_to_gpt4(state_dict: Dict, whether_switch: bool) -> None:
-    bot_backend_log = get_bot_backend_log(state_dict)
+    bot_backend = get_bot_backend(state_dict)
     if whether_switch:
-        bot_backend_log.update_gpt_model_choice("GPT-4")
+        bot_backend.update_gpt_model_choice("GPT-4")
     else:
-        bot_backend_log.update_gpt_model_choice("GPT-3.5")
+        bot_backend.update_gpt_model_choice("GPT-3.5")
 
 
 def add_text(state_dict: Dict, history: List, text: str) -> Tuple[List, Dict]:
-    bot_backend_log = get_bot_backend_log(state_dict)
-    conversation = bot_backend_log.conversation
-    revocable_files = bot_backend_log.revocable_files
-    gpt_api_log = bot_backend_log.gpt_api_log
+    bot_backend = get_bot_backend(state_dict)
+    bot_backend.add_text_message(user_text=text)
 
-    revocable_files.clear()
     history = history + [(text, None)]
-    conversation.append(
-        {'role': 'user', 'content': text}
-    )
-    gpt_api_log['finish_reason'] = 'new_input'
 
     return history, gr.update(value="", interactive=False)
 
 
 def add_file(state_dict: Dict, history: List, file) -> List:
-    bot_backend_log = get_bot_backend_log(state_dict)
-    revocable_files = bot_backend_log.revocable_files
-    conversation = bot_backend_log.conversation
+    bot_backend = get_bot_backend(state_dict)
     path = file.name
     filename = os.path.basename(path)
 
-    shutil.copy(path, bot_backend_log.jupyter_work_dir)
+    bot_msg = [f'📁[{filename}]', None]
+    history.append(bot_msg)
 
-    bot_conversation = [f'📁[{filename}]', None]
-    gpt_conversation = {'role': 'system', 'content': f'User uploaded a file: {filename}'}
-    history.append(bot_conversation)
-    conversation.append(gpt_conversation)
+    bot_backend.add_file_message(path=path, bot_msg=bot_msg)
 
-    revocable_files.append(
-        {
-            'bot_conversation': bot_conversation,
-            'gpt_conversation': gpt_conversation,
-            'path': os.path.join(bot_backend_log.jupyter_work_dir, filename)
-        }
-    )
     return history
 
 
 def undo_upload_file(state_dict: Dict, history: List) -> Tuple[List, Dict]:
-    bot_backend_log = get_bot_backend_log(state_dict)
-    revocable_files = bot_backend_log.revocable_files
-    conversation = bot_backend_log.conversation
+    bot_backend = get_bot_backend(state_dict)
+    bot_msg = bot_backend.revoke_file()
 
-    if revocable_files:
-        file = revocable_files[-1]
-        bot_conversation = file['bot_conversation']
-        gpt_conversation = file['gpt_conversation']
-        path = file['path']
-        assert history[-1] == bot_conversation
-        del history[-1]
-        assert conversation[-1] is gpt_conversation
-        del conversation[-1]
-        os.remove(path)
-        del revocable_files[-1]
-
-    if revocable_files:
-        return history, gr.Button.update(interactive=True)
-    else:
+    if bot_msg is None:
         return history, gr.Button.update(interactive=False)
+
+    else:
+        assert history[-1] == bot_msg
+        del history[-1]
+        if bot_backend.revocable_files:
+            return history, gr.Button.update(interactive=True)
+        else:
+            return history, gr.Button.update(interactive=False)
 
 
 def refresh_file_display(state_dict: Dict) -> List[str]:
-    bot_backend_log = get_bot_backend_log(state_dict)
-    work_dir = bot_backend_log.jupyter_work_dir
+    bot_backend = get_bot_backend(state_dict)
+    work_dir = bot_backend.jupyter_work_dir
     filenames = os.listdir(work_dir)
     paths = []
     for filename in filenames:
@@ -108,16 +82,15 @@ def restart_ui(history: List) -> Tuple[List, Dict, Dict, Dict, Dict]:
     )
 
 
-def restart_bot_backend_log(state_dict: Dict) -> None:
-    bot_backend_log = get_bot_backend_log(state_dict)
-    bot_backend_log.restart()
+def restart_bot_backend(state_dict: Dict) -> None:
+    bot_backend = get_bot_backend(state_dict)
+    bot_backend.restart()
 
 
 def bot(state_dict: Dict, history: List) -> List:
-    bot_backend_log = get_bot_backend_log(state_dict)
-    gpt_api_log = bot_backend_log.gpt_api_log
+    bot_backend = get_bot_backend(state_dict)
 
-    while gpt_api_log['finish_reason'] in ('new_input', 'function_call'):
+    while bot_backend.finish_reason in ('new_input', 'function_call'):
         if history[-1][0] is None:
             history.append(
                 [None, ""]
@@ -125,13 +98,12 @@ def bot(state_dict: Dict, history: List) -> List:
         else:
             history[-1][1] = ""
 
-        response = chat_completion(bot_backend_log=bot_backend_log)
+        response = chat_completion(bot_backend=bot_backend)
         for chunk in response:
             history, weather_exit = parse_response(
                 chunk=chunk,
                 history=history,
-                bot_backend_log=bot_backend_log,
-                function_dict=bot_backend_log.jupyter_kernel.available_functions
+                bot_backend=bot_backend
             )
             yield history
             if weather_exit:
@@ -147,7 +119,7 @@ if __name__ == '__main__':
         Reference: https://www.gradio.app/guides/creating-a-chatbot-fast
         """
         # UI components
-        state = gr.State(value={"bot_backend_log": None})
+        state = gr.State(value={"bot_backend": None})
         with gr.Tab("Chat"):
             chatbot = gr.Chatbot([], elem_id="chatbot", label="Local Code Interpreter", height=750)
             with gr.Row():
@@ -197,7 +169,7 @@ if __name__ == '__main__':
             fn=restart_ui, inputs=[chatbot],
             outputs=[chatbot, text_box, restart_button, file_upload_button, undo_file_button]
         ).then(
-            fn=restart_bot_backend_log, inputs=[state], queue=False
+            fn=restart_bot_backend, inputs=[state], queue=False
         ).then(
             fn=refresh_file_display, inputs=[state], outputs=[file_output]
         ).then(
