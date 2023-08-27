@@ -3,27 +3,26 @@ import gradio as gr
 import shutil
 
 
-def initialization(state_dict):
+def initialization(state_dict: Dict) -> None:
     if not os.path.exists('cache'):
         os.mkdir('cache')
     if state_dict["bot_backend_log"] is None:
         state_dict["bot_backend_log"] = BotBackendLog()
 
 
-def get_bot_backend_log(state_dict):
+def get_bot_backend_log(state_dict: Dict) -> BotBackendLog:
     return state_dict["bot_backend_log"]
 
 
-def switch_to_gpt4(state_dict, whether_switch):
+def switch_to_gpt4(state_dict: Dict, whether_switch: bool) -> None:
     bot_backend_log = get_bot_backend_log(state_dict)
     if whether_switch:
         bot_backend_log.update_gpt_model_choice("GPT-4")
     else:
         bot_backend_log.update_gpt_model_choice("GPT-3.5")
-    return state_dict
 
 
-def add_text(state_dict, history, text: str):
+def add_text(state_dict: Dict, history: List, text: str) -> Tuple[List, Dict]:
     bot_backend_log = get_bot_backend_log(state_dict)
     conversation = bot_backend_log.conversation
     revocable_files = bot_backend_log.revocable_files
@@ -36,10 +35,10 @@ def add_text(state_dict, history, text: str):
     )
     gpt_api_log['finish_reason'] = 'new_input'
 
-    return state_dict, history, gr.update(value="", interactive=False)
+    return history, gr.update(value="", interactive=False)
 
 
-def add_file(state_dict, history, file):
+def add_file(state_dict: Dict, history: List, file) -> List:
     bot_backend_log = get_bot_backend_log(state_dict)
     revocable_files = bot_backend_log.revocable_files
     conversation = bot_backend_log.conversation
@@ -60,10 +59,10 @@ def add_file(state_dict, history, file):
             'path': os.path.join(bot_backend_log.jupyter_work_dir, filename)
         }
     )
-    return state_dict, history
+    return history
 
 
-def undo_upload_file(state_dict, history):
+def undo_upload_file(state_dict: Dict, history: List) -> Tuple[List, Dict]:
     bot_backend_log = get_bot_backend_log(state_dict)
     revocable_files = bot_backend_log.revocable_files
     conversation = bot_backend_log.conversation
@@ -81,12 +80,12 @@ def undo_upload_file(state_dict, history):
         del revocable_files[-1]
 
     if revocable_files:
-        return state_dict, history, gr.Button.update(interactive=True)
+        return history, gr.Button.update(interactive=True)
     else:
-        return state_dict, history, gr.Button.update(interactive=False)
+        return history, gr.Button.update(interactive=False)
 
 
-def refresh_file_display(state_dict):
+def refresh_file_display(state_dict: Dict) -> List[str]:
     bot_backend_log = get_bot_backend_log(state_dict)
     work_dir = bot_backend_log.jupyter_work_dir
     filenames = os.listdir(work_dir)
@@ -98,7 +97,7 @@ def refresh_file_display(state_dict):
     return paths
 
 
-def restart_ui(history):
+def restart_ui(history: List) -> Tuple[List, Dict, Dict, Dict, Dict]:
     history.clear()
     return (
         history,
@@ -109,13 +108,12 @@ def restart_ui(history):
     )
 
 
-def restart_bot_backend_log(state_dict):
+def restart_bot_backend_log(state_dict: Dict) -> None:
     bot_backend_log = get_bot_backend_log(state_dict)
     bot_backend_log.restart()
-    return state_dict
 
 
-def bot(state_dict, history):
+def bot(state_dict: Dict, history: List) -> List:
     bot_backend_log = get_bot_backend_log(state_dict)
     gpt_api_log = bot_backend_log.gpt_api_log
 
@@ -165,7 +163,7 @@ if __name__ == '__main__':
             with gr.Row(equal_height=True):
                 with gr.Column(scale=0.7):
                     check_box = gr.Checkbox(label="Using GPT-4", interactive=config['model']['GPT-4']['available'])
-                    check_box.change(fn=switch_to_gpt4, inputs=[state, check_box], outputs=[state])
+                    check_box.change(fn=switch_to_gpt4, inputs=[state, check_box])
                 with gr.Column(scale=0.15, min_width=0):
                     restart_button = gr.Button(value='🔄 Restart')
                 with gr.Column(scale=0.15, min_width=0):
@@ -174,7 +172,7 @@ if __name__ == '__main__':
             file_output = gr.Files()
 
         # Components function binding
-        txt_msg = text_box.submit(add_text, [state, chatbot, text_box], [state, chatbot, text_box], queue=False).then(
+        txt_msg = text_box.submit(add_text, [state, chatbot, text_box], [chatbot, text_box], queue=False).then(
             bot, [state, chatbot], chatbot
         )
         txt_msg.then(fn=refresh_file_display, inputs=[state], outputs=[file_output])
@@ -182,7 +180,7 @@ if __name__ == '__main__':
         txt_msg.then(lambda: gr.Button.update(interactive=False), None, [undo_file_button], queue=False)
 
         file_msg = file_upload_button.upload(
-            add_file, [state, chatbot, file_upload_button], [state, chatbot], queue=False
+            add_file, [state, chatbot, file_upload_button], [chatbot], queue=False
         ).then(
             bot, [state, chatbot], chatbot
         )
@@ -190,7 +188,7 @@ if __name__ == '__main__':
         file_msg.then(fn=refresh_file_display, inputs=[state], outputs=[file_output])
 
         undo_file_button.click(
-            fn=undo_upload_file, inputs=[state, chatbot], outputs=[state, chatbot, undo_file_button]
+            fn=undo_upload_file, inputs=[state, chatbot], outputs=[chatbot, undo_file_button]
         ).then(
             fn=refresh_file_display, inputs=[state], outputs=[file_output]
         )
@@ -199,7 +197,7 @@ if __name__ == '__main__':
             fn=restart_ui, inputs=[chatbot],
             outputs=[chatbot, text_box, restart_button, file_upload_button, undo_file_button]
         ).then(
-            fn=restart_bot_backend_log, inputs=[state], outputs=[state], queue=False
+            fn=restart_bot_backend_log, inputs=[state], queue=False
         ).then(
             fn=refresh_file_display, inputs=[state], outputs=[file_output]
         ).then(

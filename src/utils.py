@@ -2,6 +2,7 @@ import json
 import openai
 import os
 from jupyter_backend import *
+from typing import *
 
 functions = [
     {
