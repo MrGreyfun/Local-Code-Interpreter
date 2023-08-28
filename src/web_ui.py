@@ -1,4 +1,4 @@
-from bot_backend import *
+from response_parser import *
 import gradio as gr
 
 
@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
             with gr.Row(equal_height=True):
                 with gr.Column(scale=0.7):
-                    check_box = gr.Checkbox(label="Using GPT-4", interactive=config['model']['GPT-4']['available'])
+                    check_box = gr.Checkbox(label="Use GPT-4", interactive=config['model']['GPT-4']['available'])
                     check_box.change(fn=switch_to_gpt4, inputs=[state, check_box])
                 with gr.Column(scale=0.15, min_width=0):
                     restart_button = gr.Button(value='🔄 Restart')

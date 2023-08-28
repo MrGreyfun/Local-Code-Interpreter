@@ -1,230 +1,231 @@
-from utils import *
-import base64
-import time
+import json
+import openai
+import os
+import copy
+import shutil
+from jupyter_backend import *
+from typing import *
+
+functions = [
+    {
+        "name": "execute_code",
+        "description": "This function allows you to execute Python code and retrieve the terminal output. If the code "
+                       "generates image output, the function will return the text '[image]'. The code is sent to a "
+                       "Jupyter kernel for execution. The kernel will remain active after execution, retaining all "
+                       "variables in memory.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "The code text"
+                }
+            },
+            "required": ["code"],
+        }
+    }
+]
+
+system_msg = '''You are an AI code interpreter.
+Your goal is to help users do a variety of jobs by executing Python code.
+
+You should:
+1. Comprehend the user's requirements carefully & to the letter. 
+2. Give a brief description for what you plan to do & call the execute_code function to run code
+3. Provide results analysis based on the execution output. 
+4. If error occurred, try to fix it.
+
+Note: If the user uploads a file, you will receive a system message "User uploaded a file: filename". Use the filename as the path in the code. '''
 
 
-def chat_completion(bot_backend: BotBackend):
-    model_choice = bot_backend.gpt_model_choice
-    config = bot_backend.config
-    kwargs_for_chat_completion = bot_backend.kwargs_for_chat_completion
-
-    assert config['model'][model_choice]['available'], f"{model_choice} is not available for you API key"
-
-    response = openai.ChatCompletion.create(**kwargs_for_chat_completion)
-    return response
+def get_config():
+    with open('config.json') as f:
+        config = json.load(f)
+    return config
 
 
-def add_function_response_to_bot_history(content_to_display, history, unique_id):
-    images, text = [], []
+def config_openai_api(api_type, api_base, api_version, api_key):
+    openai.api_type = api_type
+    openai.api_base = api_base
+    openai.api_version = api_version
+    openai.api_key = api_key
 
-    # terminal output
-    error_occurred = False
-    for mark, out_str in content_to_display:
-        if mark in ('stdout', 'execute_result_text', 'display_text'):
-            text.append(out_str)
-        elif mark in ('execute_result_png', 'execute_result_jpeg', 'display_png', 'display_jpeg'):
-            if 'png' in mark:
-                images.append(('png', out_str))
-            else:
-                images.append(('jpg', out_str))
-        elif mark == 'error':
-            text.append(delete_color_control_char(out_str))
-            error_occurred = True
-    text = '\n'.join(text).strip('\n')
-    if error_occurred:
-        history.append([None, f'❌Terminal output:\n```shell\n\n{text}\n```'])
-    else:
-        history.append([None, f'✔️Terminal output:\n```shell\n{text}\n```'])
 
-    # image output
-    for filetype, img in images:
-        image_bytes = base64.b64decode(img)
-        temp_path = f'cache/temp_{unique_id}'
-        if not os.path.exists(temp_path):
-            os.mkdir(temp_path)
-        path = f'{temp_path}/{hash(time.time())}.{filetype}'
-        with open(path, 'wb') as f:
-            f.write(image_bytes)
-        history.append(
-            [
-                None,
-                f'<img src=\"file={path}\" style=\'width: 600px; max-width:none; max-height:none\'>'
-            ]
+class GPTResponseLog:
+    def __init__(self):
+        self.assistant_role_name = ''
+        self.content = ''
+        self.function_name = None
+        self.function_args_str = ''
+        self.display_code_block = ''
+        self.finish_reason = 'stop'
+        self.bot_history = None
+
+    def reset_gpt_response_log_values(self, exclude=None):
+        if exclude is None:
+            exclude = []
+
+        attributes = {'assistant_role_name': '',
+                      'content': '',
+                      'function_name': None,
+                      'function_args_str': '',
+                      'display_code_block': '',
+                      'finish_reason': 'stop',
+                      'bot_history': None}
+
+        for attr_name in exclude:
+            del attributes[attr_name]
+        for attr_name, value in attributes.items():
+            setattr(self, attr_name, value)
+
+    def set_assistant_role_name(self, assistant_role_name: str):
+        self.assistant_role_name = assistant_role_name
+
+    def add_content(self, content: str):
+        self.content += content
+
+    def set_function_name(self, function_name: str):
+        self.function_name = function_name
+
+    def copy_current_bot_history(self, bot_history: List):
+        self.bot_history = copy.deepcopy(bot_history)
+
+    def add_function_args_str(self, function_args_str: str):
+        self.function_args_str += function_args_str
+
+    def update_display_code_block(self, display_code_block):
+        self.display_code_block = display_code_block
+
+    def update_finish_reason(self, finish_reason: str):
+        self.finish_reason = finish_reason
+
+
+class BotBackend(GPTResponseLog):
+    def __init__(self):
+        super().__init__()
+        self.unique_id = hash(id(self))
+        self.jupyter_work_dir = f'cache/work_dir_{self.unique_id}'
+        self.jupyter_kernel = JupyterKernel(work_dir=self.jupyter_work_dir)
+        self.gpt_model_choice = "GPT-3.5"
+        self.revocable_files = []
+        self._init_conversation()
+        self._init_api_config()
+        self._init_kwargs_for_chat_completion()
+
+    def _init_conversation(self):
+        first_system_msg = {'role': 'system', 'content': system_msg}
+        if hasattr(self, 'conversation'):
+            self.conversation.clear()
+            self.conversation.append(first_system_msg)
+        else:
+            self.conversation: List[Dict] = [first_system_msg]
+
+    def _init_api_config(self):
+        self.config = get_config()
+        api_type = self.config['API_TYPE']
+        api_base = self.config['API_base']
+        api_version = self.config['API_VERSION']
+        if self.config['API_KEY']:
+            api_key = self.config['API_KEY']
+        else:
+            api_key = os.getenv('OPENAI_API_KEY')
+
+        config_openai_api(api_type, api_base, api_version, api_key)
+
+    def _init_kwargs_for_chat_completion(self):
+        self.kwargs_for_chat_completion = {
+            'stream': True,
+            'messages': self.conversation,
+            'functions': functions,
+            'function_call': 'auto'
+        }
+
+        model_name = self.config['model'][self.gpt_model_choice]['model_name']
+
+        if self.config['API_TYPE'] == 'azure':
+            self.kwargs_for_chat_completion['engine'] = model_name
+        else:
+            self.kwargs_for_chat_completion['model'] = model_name
+
+    def _clear_all_files_in_work_dir(self):
+        for filename in os.listdir(self.jupyter_work_dir):
+            os.remove(
+                os.path.join(self.jupyter_work_dir, filename)
+            )
+
+    def add_gpt_response_content_message(self):
+        self.conversation.append(
+            {'role': self.assistant_role_name, 'content': self.content}
         )
 
+    def add_text_message(self, user_text):
+        self.conversation.append(
+            {'role': 'user', 'content': user_text}
+        )
+        self.revocable_files.clear()
+        self.update_finish_reason(finish_reason='new_input')
 
-def parse_json(function_args: str, finished: bool):
-    """
-    GPT may generate non-standard JSON format string, which contains '\n' in string value, leading to error when using
-    `json.loads()`.
-    Here we implement a parser to extract code directly from non-standard JSON string.
-    :return: code string if successfully parsed otherwise None
-    """
-    parser_log = {
-        'met_begin_{': False,
-        'begin_"code"': False,
-        'end_"code"': False,
-        'met_:': False,
-        'met_end_}': False,
-        'met_end_code_"': False,
-        "code_begin_index": 0,
-        "code_end_index": 0
-    }
-    try:
-        for index, char in enumerate(function_args):
-            if char == '{':
-                parser_log['met_begin_{'] = True
-            elif parser_log['met_begin_{'] and char == '"':
-                if parser_log['met_:']:
-                    if finished:
-                        parser_log['code_begin_index'] = index + 1
-                        break
-                    else:
-                        if index + 1 == len(function_args):
-                            return ''
-                        else:
-                            temp_code_str = function_args[index + 1:]
-                            if '\n' in temp_code_str:
-                                return temp_code_str.strip('\n')
-                            else:
-                                return json.loads(function_args + '"}')['code']
-                elif parser_log['begin_"code"']:
-                    parser_log['end_"code"'] = True
-                else:
-                    parser_log['begin_"code"'] = True
-            elif parser_log['end_"code"'] and char == ':':
-                parser_log['met_:'] = True
-            else:
-                continue
-        if finished:
-            for index, char in enumerate(function_args[::-1]):
-                back_index = -1 - index
-                if char == '}':
-                    parser_log['met_end_}'] = True
-                elif parser_log['met_end_}'] and char == '"':
-                    parser_log['code_end_index'] = back_index - 1
-                    break
-                else:
-                    continue
-            code_str = function_args[parser_log['code_begin_index']: parser_log['code_end_index'] + 1]
-            if '\n' in code_str:
-                return code_str.strip('\n')
-            else:
-                return json.loads(function_args)['code']
+    def add_file_message(self, path, bot_msg):
+        filename = os.path.basename(path)
+        work_dir = self.jupyter_work_dir
 
-    except Exception as e:
-        return None
+        shutil.copy(path, work_dir)
 
+        gpt_msg = {'role': 'system', 'content': f'User uploaded a file: {filename}'}
+        self.conversation.append(gpt_msg)
+        self.revocable_files.append(
+            {
+                'bot_msg': bot_msg,
+                'gpt_msg': gpt_msg,
+                'path': os.path.join(work_dir, filename)
+            }
+        )
 
-def parse_response(chunk, history, bot_backend: BotBackend):
-    """
-    :return: history, whether_exit
-    """
-    function_dict = bot_backend.jupyter_kernel.available_functions
+    def add_function_call_response_message(self, function_response: str, save_tokens=True):
+        self.conversation.append(
+            {
+                "role": self.assistant_role_name,
+                "name": self.function_name,
+                "content": self.function_args_str
+            }
+        )
 
-    whether_exit = False
-    if chunk['choices']:
-        delta = chunk['choices'][0]['delta']
-        if 'role' in delta:
-            bot_backend.set_assistant_role_name(assistant_role_name=delta['role'])
-        if 'content' in delta:
-            if delta['content'] is not None:
-                # null value of content often occur in function call:
-                #     {
-                #       "role": "assistant",
-                #       "content": null,
-                #       "function_call": {
-                #         "name": "python",
-                #         "arguments": ""
-                #       }
-                #     }
-                bot_backend.add_content(content=delta.get('content', ''))
-                history[-1][1] = bot_backend.content
+        if save_tokens and len(function_response) > 500:
+            function_response = f'{function_response[:200]}\n[Output too much, the middle part output is omitted]\n ' \
+                                f'End part of output:\n{function_response[-200:]}'
+        self.conversation.append(
+            {
+                "role": "function",
+                "name": self.function_name,
+                "content": function_response,
+            }
+        )
 
-        if 'function_call' in delta:
-            if 'name' in delta['function_call']:
-                bot_backend.set_function_name(function_name=delta['function_call']['name'])
-                bot_backend.copy_current_bot_history(bot_history=history)
-                if bot_backend.function_name not in function_dict:
-                    history.append(
-                        [
-                            None,
-                            f'GPT attempted to call a function that does '
-                            f'not exist: {bot_backend.function_name}\n '
-                        ]
-                    )
-                    whether_exit = True
+    def revoke_file(self):
+        if self.revocable_files:
+            file = self.revocable_files[-1]
+            bot_msg = file['bot_msg']
+            gpt_msg = file['gpt_msg']
+            path = file['path']
 
-                    return history, whether_exit
+            assert self.conversation[-1] is gpt_msg
+            del self.conversation[-1]
 
-            if 'arguments' in delta['function_call']:
-                bot_backend.add_function_args_str(function_args_str=delta['function_call']['arguments'])
+            os.remove(path)
 
-                if bot_backend.function_name == 'python':  # handle hallucinatory function calls
-                    '''
-                    In practice, we have noticed that GPT, especially GPT-3.5, may occasionally produce hallucinatory
-                    function calls. These calls involve a non-existent function named `python` with arguments consisting 
-                    solely of raw code text (not a JSON format).
-                    '''
-                    temp_code_str = bot_backend.function_args_str
-                    bot_backend.update_display_code_block(
-                        display_code_block="\n🔴Working:\n```python\n{}\n```".format(temp_code_str)
-                    )
-                    history = copy.deepcopy(bot_backend.bot_history)
-                    history[-1][1] += bot_backend.display_code_block
-                else:
-                    temp_code_str = parse_json(function_args=bot_backend.function_args_str, finished=False)
-                    if temp_code_str is not None:
-                        bot_backend.update_display_code_block(
-                            display_code_block="\n🔴Working:\n```python\n{}\n```".format(
-                                temp_code_str
-                            )
-                        )
-                        history = copy.deepcopy(bot_backend.bot_history)
-                        history[-1][1] += bot_backend.display_code_block
+            del self.revocable_files[-1]
 
-        if chunk['choices'][0]['finish_reason'] is not None:
-            if bot_backend.content:
-                bot_backend.add_gpt_response_content_message()
+            return bot_msg
+        else:
+            return None
 
-            bot_backend.update_finish_reason(finish_reason=chunk['choices'][0]['finish_reason'])
-            if bot_backend.finish_reason == 'function_call':
-                try:
-                    if bot_backend.function_name == 'python':
-                        code_str = bot_backend.function_args_str
-                    else:
-                        code_str = parse_json(function_args=bot_backend.function_args_str, finished=True)
-                        if code_str is None:
-                            raise json.JSONDecodeError
-                    bot_backend.update_display_code_block(
-                        display_code_block="\n🟢Working:\n```python\n{}\n```".format(code_str)
-                    )
-                    history = copy.deepcopy(bot_backend.bot_history)
-                    history[-1][1] += bot_backend.display_code_block
+    def update_gpt_model_choice(self, model_choice):
+        self.gpt_model_choice = model_choice
+        self._init_kwargs_for_chat_completion()
 
-                    # function response
-                    text_to_gpt, content_to_display = function_dict[
-                        bot_backend.function_name
-                    ](code_str)
-
-                    # add function call to conversion
-                    bot_backend.add_function_call_response_message(function_response=text_to_gpt, save_tokens=True)
-
-                    add_function_response_to_bot_history(
-                        content_to_display=content_to_display, history=history, unique_id=bot_backend.unique_id
-                    )
-
-                except json.JSONDecodeError:
-                    history.append(
-                        [None, f"GPT generate wrong function args: {bot_backend.function_args_str}"]
-                    )
-                    whether_exit = True
-                    return history, whether_exit
-
-                except Exception as e:
-                    history.append([None, f'Backend error: {e}'])
-                    whether_exit = True
-                    return history, whether_exit
-            bot_backend.reset_gpt_response_log_values(exclude=['finish_reason'])
-
-    return history, whether_exit
+    def restart(self):
+        self._clear_all_files_in_work_dir()
+        self.revocable_files.clear()
+        self._init_conversation()
+        self.reset_gpt_response_log_values()
+        self.jupyter_kernel.restart_jupyter_kernel()
