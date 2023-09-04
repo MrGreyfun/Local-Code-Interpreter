@@ -1,9 +1,9 @@
 # Local-Code-Interpreter
-A local implementation of OpenAI's ChatGPT Code Interpreter.
+A local implementation of OpenAI's ChatGPT Code Interpreter (Advanced Data Analysis).
 
 ## Introduction
 
-OpenAI's Code Interpreter plugin for ChatGPT is a revolutionary feature that allows the execution of Python code within the AI model. However, it execute code within an online sandbox and has certain limitations. In this project, we present Local Code Interpreter – which enables code execution on your local device, offering enhanced flexibility, security, and convenience.
+OpenAI's Code Interpreter (currently renamed as Advanced Data Analysis) for ChatGPT is a revolutionary feature that allows the execution of Python code within the AI model. However, it execute code within an online sandbox and has certain limitations. In this project, we present Local Code Interpreter – which enables code execution on your local device, offering enhanced flexibility, security, and convenience.
 
 ## Key Advantages
 
