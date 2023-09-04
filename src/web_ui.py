@@ -7,6 +7,8 @@ def initialization(state_dict: Dict) -> None:
         os.mkdir('cache')
     if state_dict["bot_backend"] is None:
         state_dict["bot_backend"] = BotBackend()
+        if 'OPENAI_API_KEY' in os.environ:
+            del os.environ['OPENAI_API_KEY']
 
 
 def get_bot_backend(state_dict: Dict) -> BotBackend:
@@ -131,7 +133,6 @@ if __name__ == '__main__':
                     )
                 with gr.Column(scale=0.15, min_width=0):
                     file_upload_button = gr.UploadButton("📁", file_types=['file'])
-
             with gr.Row(equal_height=True):
                 with gr.Column(scale=0.7):
                     check_box = gr.Checkbox(label="Use GPT-4", interactive=config['model']['GPT-4']['available'])

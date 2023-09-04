@@ -30,17 +30,26 @@ system_msg = '''You are an AI code interpreter.
 Your goal is to help users do a variety of jobs by executing Python code.
 
 You should:
-1. Comprehend the user's requirements carefully & to the letter. 
+1. Comprehend the user's requirements carefully & 
+
+
+
+to the letter. 
 2. Give a brief description for what you plan to do & call the execute_code function to run code
 3. Provide results analysis based on the execution output. 
 4. If error occurred, try to fix it.
 
 Note: If the user uploads a file, you will receive a system message "User uploaded a file: filename". Use the filename as the path in the code. '''
 
+with open('config.json') as f:
+    config = json.load(f)
+
+if not config['API_KEY']:
+    config['API_KEY'] = os.getenv('OPENAI_API_KEY')
+    os.unsetenv('OPENAI_API_KEY')
+
 
 def get_config():
-    with open('config.json') as f:
-        config = json.load(f)
     return config
 
 
@@ -125,11 +134,7 @@ class BotBackend(GPTResponseLog):
         api_type = self.config['API_TYPE']
         api_base = self.config['API_base']
         api_version = self.config['API_VERSION']
-        if self.config['API_KEY']:
-            api_key = self.config['API_KEY']
-        else:
-            api_key = os.getenv('OPENAI_API_KEY')
-
+        api_key = config['API_KEY']
         config_openai_api(api_type, api_base, api_version, api_key)
 
     def _init_kwargs_for_chat_completion(self):
