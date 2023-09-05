@@ -1,3 +1,5 @@
+**Read this in other languages: [English](README.md), [中文](README_CN.md).**
+
 # Local-Code-Interpreter
 A local implementation of OpenAI's ChatGPT Code Interpreter (Advanced Data Analysis).
 
@@ -20,11 +22,12 @@ Executing AI-generated code without human review on your own device is not safe.
 
 ## Usage
 
-### Getting Started
+### Installation
 
 1. Clone this repository to your local device
    ```shell
    git clone https://github.com/MrGreyfun/Local-Code-Interpreter.git
+   cd Local-Code-Interpreter
    ```
 
 2. Install the necessary dependencies. The program has been tested on Windows 10 and CentOS Linux 7.8, with Python 3.9.16. Required packages include:
@@ -33,7 +36,15 @@ Executing AI-generated code without human review on your own device is not safe.
    gradio              3.39.0
    openai              0.27.8
    ```
-   Other system or package version may also work.
+   Other systems or package versions may also work.
+   You can use the following command to directly install the required packages:
+   ```shell
+   pip install -r requirements.txt
+   ```
+   For newcomers to Python, we offer a convenient command that installs additional packages commonly used for data processing and analysis:
+   ```shell
+   pip install -r requirements_full.txt
+   ```
 ### Configuration
 
 1. Create a `config.json` file in the `src` directory, following the examples provided in the `config_example` directory.
@@ -74,6 +85,9 @@ Please Note:
 ## Getting Started
 
 1. Navigate to the `src` directory.
+   ```shell
+   cd src
+   ```
 
 2. Run the command:
    ```shell
