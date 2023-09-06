@@ -1,4 +1,4 @@
-**Read this in other languages: [English](README.md), [中文](README_CN.md).**
+**Read in other language: [中文](README_CN.md).**
 
 # Local-Code-Interpreter
 A local implementation of OpenAI's ChatGPT Code Interpreter (Advanced Data Analysis).
@@ -53,9 +53,9 @@ Executing AI-generated code without human review on your own device is not safe.
 
 Please Note:
 1. **Set the `model_name` Correctly**
-    This program relies on the function calling capability of two specific models:
-    - `gpt-3.5-turbo-0613`
-    - `gpt-4-0613`
+    This program relies on the function calling capability of the `0613` version of models:
+    - `gpt-3.5-turbo-0613` (and its' 16K version)
+    - `gpt-4-0613` (and its' 32K version)
 
     Older versions of the models will not work. 
 
