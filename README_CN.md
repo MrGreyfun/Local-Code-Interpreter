@@ -53,7 +53,7 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
 
 请注意：
 1. **正确设置`model_name`**
-    该程序依赖于`0163`版本的函数调用能力：
+    该程序依赖于`0163`版本的模型的函数调用能力，这些模型包括：
     - `gpt-3.5-turbo-0613` (及其16K版本)
     - `gpt-4-0613` (及其32K版本)
 
