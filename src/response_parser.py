@@ -75,11 +75,11 @@ class ArgumentsFunctionCallChoiceStrategy(ChoiceStrategy):
         bot_backend.add_function_args_str(function_args_str=self.delta['function_call']['arguments'])
 
         if bot_backend.function_name == 'python':  # handle hallucinatory function calls
-            '''
+            """
             In practice, we have noticed that GPT, especially GPT-3.5, may occasionally produce hallucinatory
             function calls. These calls involve a non-existent function named `python` with arguments consisting 
             solely of raw code text (not a JSON format).
-            '''
+            """
             temp_code_str = bot_backend.function_args_str
             bot_backend.update_display_code_block(
                 display_code_block="\n🔴Working:\n```python\n{}\n```".format(temp_code_str)
