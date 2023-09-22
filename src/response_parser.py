@@ -29,8 +29,6 @@ class RoleChoiceStrategy(ChoiceStrategy):
 class ContentChoiceStrategy(ChoiceStrategy):
     def support(self):
         return 'content' in self.delta and self.delta['content'] is not None
-
-    def execute(self, bot_backend: BotBackend, history: List, whether_exit: bool):
         # null value of content often occur in function call:
         #     {
         #       "role": "assistant",
@@ -40,6 +38,8 @@ class ContentChoiceStrategy(ChoiceStrategy):
         #         "arguments": ""
         #       }
         #     }
+
+    def execute(self, bot_backend: BotBackend, history: List, whether_exit: bool):
         bot_backend.add_content(content=self.delta.get('content', ''))
         history[-1][1] = bot_backend.content
         return history, whether_exit

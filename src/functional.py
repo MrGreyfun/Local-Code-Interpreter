@@ -8,7 +8,7 @@ def chat_completion(bot_backend: BotBackend):
     config = bot_backend.config
     kwargs_for_chat_completion = bot_backend.kwargs_for_chat_completion
 
-    assert config['model'][model_choice]['available'], f"{model_choice} is not available for you API key"
+    assert config['model'][model_choice]['available'], f"{model_choice} is not available for your API key"
 
     response = openai.ChatCompletion.create(**kwargs_for_chat_completion)
     return response
