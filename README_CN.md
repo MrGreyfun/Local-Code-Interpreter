@@ -1,11 +1,11 @@
 **Read in other language: [English](README.md)**
 
-# 本地版代码解释器
+# 本地代码解释器
 OpenAI的ChatGPT代码解释器（Code Interpreter或Advanced Data Analysis）的本地版。
 
 ## 简介
 
-OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data Analysis）是数据分析的利器。但是，它是在一个在线沙箱环境中运行代码，因而有诸多限制（缺包、上传慢、只能传100MB以下的文件、代码只运行120秒等）。为此，我们推出了本地版代码解释器（Local Code Interpreter），它允许在你的的本地设备上用你专属的Python环境执行ChatGPT生成的代码，解除了官版代码解释器的各种限制。
+OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data Analysis）是一款强大的AI工具。然而，其在在线沙箱环境中运行代码的特性导致了一些限制，如包的缺失、上传速度较慢、仅支持上传不超过100MB的文件以及代码最多只能运行120秒等。为此，我们推出了本地代码解释器（Local Code Interpreter）。这款工具允许您在自己的设备上，利用自己专属的Python环境来执行ChatGPT生成的代码，从而解除了原有解释器的各种限制。
 
 ## 优势
 
@@ -15,10 +15,10 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
 
 - **可用GPT-3.5**：官方代码解释器只能在GPT-4中使用，但现在你甚至可以在一轮对话中自由切换GPT-3.5和GPT-4。
 
-- **数据更安全**：代码本地执行，文件无需上传至网络，数据更加安全。
+- **数据更安全**：代码在本地运行，无需将文件上传至网络，提高了数据的安全性。
 
 ## 注意事项
-在您自己的设备上执行未经人工审核的AI生成的代码是不安全的。在启动此程序之前，您有必要采取措施（例如使用虚拟机）保护您的设备和数据的安全。使用此程序造成的一切后果应由您自己承担。
+在您自己的设备上执行AI生成但未经人工审核的代码可能存在安全风险。在运行此程序前，您应当采用一些安全措施，例如使用虚拟机，以保护您的设备和数据。使用此程序所产生的所有后果，您需自行承担。
 
 ## 使用方法
 
@@ -60,7 +60,7 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
     旧版本的模型将无法使用。
 
     对于使用Azure OpenAI的用户：
-    - 请将`model_name`设置为您的模型的部署名称（deployment name）。
+    - 请将`model_name`设置为您的模型的部署名（deployment name）。
     - 确认部署的模型是`0613`版本。
 
 2. **API版本设置**
