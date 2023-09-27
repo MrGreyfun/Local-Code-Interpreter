@@ -40,11 +40,6 @@ Note: If the user uploads a file, you will receive a system message "User upload
 with open('config.json') as f:
     config = json.load(f)
 
-if not config['API_KEY']:
-    config['API_KEY'] = os.getenv('OPENAI_API_KEY')
-    os.unsetenv('OPENAI_API_KEY')
-
-
 def get_config():
     return config
 
@@ -127,10 +122,10 @@ class BotBackend(GPTResponseLog):
 
     def _init_api_config(self):
         self.config = get_config()
-        api_type = self.config['API_TYPE']
-        api_base = self.config['API_base']
-        api_version = self.config['API_VERSION']
-        api_key = config['API_KEY']
+        api_type =os.getenv("INTERPETER_API_TYPE", self.config['API_TYPE'] )  
+        api_base =os.getenv('INTERPETER_API_BASE',self.config['API_base'])
+        api_version = os.getenv('INTERPETER_API_VERSION',self.config['API_VERSION'] )
+        api_key = os.getenv('OPENAI_API_KEY',self.config['API_KEY'])
         config_openai_api(api_type, api_base, api_version, api_key)
 
     def _init_kwargs_for_chat_completion(self):

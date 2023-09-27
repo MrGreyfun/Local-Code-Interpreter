@@ -182,4 +182,4 @@ if __name__ == '__main__':
         block.load(fn=initialization, inputs=[state])
 
     block.queue()
-    block.launch(inbrowser=True)
+    block.launch(inbrowser=False,server_port=7860,server_name="0.0.0.0")

@@ -17,12 +17,36 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
 
 - **数据更安全**：代码在本地运行，无需将文件上传至网络，提高了数据的安全性。
 
+- **[open-interpreter](https://github.com/KillianLucas/open-interpreter/tree/main)**：相对于open-interpreter有更小的Token使用量,在GPT-3.5模型下有更好的效果.
+
 ## 注意事项
 在您自己的设备上执行AI生成但未经人工审核的代码可能存在安全风险。在运行此程序前，您应当采用一些安全措施，例如使用虚拟机，以保护您的设备和数据。使用此程序所产生的所有后果，您需自行承担。
 
 ## 使用方法
 
-### 安装
+### 在Docker中运行
+
+#### 直接运行
+
+```bash
+docker run  
+--rm 
+-it  
+-e OPENAI_API_base=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 `API key`
+-e INTERPETER_API_TYPE="open_ai" `API_TYPE`
+-e INTERPETER_API_BASE=https://chatgpt2.nextweb.fun/api/proxy/v1 `API 访问地址`
+-e INTERPETER_API_VERSION="" `API_VERSION`
+-e http_proxy=http://192.168.1.10:11992 `http代理地址`
+-e https_proxy=http://192.168.1.10:11992 `https代理地址`
+-p 7860:7860 `#Web访问端口`
+localcodeinterpreter
+```
+
+
+
+### 手动部署
+
+#### 安装
 
 1. 克隆本仓库
    ```shell
@@ -45,7 +69,7 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
    ```shell
    pip install -r requirements_full.txt
    ```
-### 配置
+#### 配置
 
 1. 在`src`目录中创建一个`config.json`文件，参照`config_example`目录中提供的示例进行配置。
 
@@ -82,7 +106,7 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
         export OPENAI_API_KEY=<你的API密钥>
         ```
 
-## 使用
+#### 运行
 
 1. 进入`src`目录。
    ```shell
