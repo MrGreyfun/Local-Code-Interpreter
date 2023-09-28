@@ -29,17 +29,37 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
 #### 直接运行
 
 ```bash
-docker run  
---rm 
--it  
--e OPENAI_API_base=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 `API key`
--e INTERPETER_API_TYPE="open_ai" `API_TYPE`
--e INTERPETER_API_BASE=https://chatgpt2.nextweb.fun/api/proxy/v1 `API 访问地址`
--e INTERPETER_API_VERSION="" `API_VERSION`
--e http_proxy=http://192.168.1.10:11992 `http代理地址`
--e https_proxy=http://192.168.1.10:11992 `https代理地址`
--p 7860:7860 `#Web访问端口`
-localcodeinterpreter
+docker run -it --rm   -e OPENAI_API_KEY=youOpenApiKey -p 7860:7860 zh3305/localcodeinterpreter:latest
+```
+
+##### 环境变量
+
+### `OPENAI_API_KEY`
+
+API密钥
+
+### `INTERPETER_API_TYPE`
+
+默认为 `open_ai`
+
+### `INTERPETER_API_BASE`
+
+Api访问地址,默认为 `https://api.openai.com/v1` ,可使用反向代理地址,如ChatGPT Next Web提供的代理接口地址 `https://chatgpt2.nextweb.fun/api/proxy/v1`
+
+### `INTERPETER_API_VERSION`
+
+如果您使用Azure OpenAI服务，请在`设置为`2023-07-01-preview`，其他API版本不支持函数调用。
+
+### `http_proxy`, `https_proxy`
+
+代理服务器地址,可设置访问的代理服务器 如: -e http_proxy=http://192.168.1.10:11992 `http代理地址` -e https_proxy=http://192.168.1.10:11992 `https代理地址`
+
+
+
+#### 手动编译Docker镜像
+
+```bash
+docker build --pull --rm -f "Dockerfile" -t localcodeinterpreter:latest "." 
 ```
 
 
@@ -62,6 +82,7 @@ localcodeinterpreter
    ```
    其他系统或库版本也可能有效。
    您可以使用以下命令直接安装所需的软件包：
+   
    ```shell
    pip install -r requirements.txt
    ```
