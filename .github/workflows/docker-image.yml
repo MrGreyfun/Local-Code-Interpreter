@@ -23,4 +23,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: zh3395/localcodeinterpreter:latest
+          tags: zh3305/localcodeinterpreter:latest
