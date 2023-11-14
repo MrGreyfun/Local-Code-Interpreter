@@ -67,9 +67,9 @@ def refresh_file_display(state_dict: Dict) -> List[str]:
     filenames = os.listdir(work_dir)
     paths = []
     for filename in filenames:
-        paths.append(
-            os.path.join(work_dir, filename)
-        )
+        path = os.path.join(work_dir, filename)
+        if not os.path.isdir(path):
+            paths.append(path)
     return paths
 
 
