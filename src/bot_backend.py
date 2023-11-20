@@ -6,8 +6,7 @@ import shutil
 from jupyter_backend import *
 from typing import *
 
-import yaml
-from notebook_serializer import notebbok_cells, serialize_conv_into_notebook
+from notebook_serializer import append_markdown, append_code_cell
 
 functions = [
     {
@@ -161,12 +160,7 @@ class BotBackend(GPTResponseLog):
         self.conversation.append(
             {'role': self.assistant_role_name, 'content': self.content}
         )
-        notebbok_cells.append({
-            'type': 'markdown',
-            'markdown': "##### Assistant:\n" + self.content
-            }
-        )
-        serialize_conv_into_notebook()
+        append_markdown(self.content, title="Assistant")
 
     def add_text_message(self, user_text):
         self.conversation.append(
@@ -174,12 +168,8 @@ class BotBackend(GPTResponseLog):
         )
         self.revocable_files.clear()
         self.update_finish_reason(finish_reason='new_input')
-        notebbok_cells.append({
-            'type': 'markdown',
-            'markdown': "##### User:\n" + user_text
-            }
-        )
-        serialize_conv_into_notebook()
+        append_markdown(user_text, title="User")
+
         
 
     def add_file_message(self, path, bot_msg):
@@ -205,13 +195,11 @@ class BotBackend(GPTResponseLog):
         # I assusme this is due to hallucinatory function calls.
         try: # Try to load json formatted code.
             code_cell_obj = json.loads(self.function_args_str)
-            code_cell_obj["type"] = 'code'
-            notebbok_cells.append(code_cell_obj)
+            append_code_cell(code_cell_obj['code'])
         except Exception:
             # If json.loads raises an error, it is most likely that the self.function_args_str is not json formatted,
-            # and that we can treat it as plain text.
-            code_cell_obj = {'type': 'code', 'code': self.function_args_str}
-            notebbok_cells.append(code_cell_obj)
+            # and that we can treat it as the actual code.
+            append_code_cell(self.function_args_str)
 
         self.conversation.append(
             {

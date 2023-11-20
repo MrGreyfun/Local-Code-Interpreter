@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from functional import *
-from notebook_serializer import serialize_conv_into_notebook
+# from notebook_serializer import serialize_conv_into_notebook
 
 class ChoiceStrategy(metaclass=ABCMeta):
     def __init__(self, choice):
@@ -133,8 +133,6 @@ class FinishReasonChoiceStrategy(ChoiceStrategy):
                 add_function_response_to_bot_history(
                     content_to_display=content_to_display, history=history, unique_id=bot_backend.unique_id
                 )
-
-                serialize_conv_into_notebook()
 
             except json.JSONDecodeError:
                 history.append(
