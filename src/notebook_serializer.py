@@ -4,9 +4,17 @@ import ansi2html
 import sys
 import os
 import json
+import argparse
 
-# Get UNIQUE notebook path with argv and cwd
-
+# main code
+parser = argparse.ArgumentParser()
+parser.add_argument("-n", "--notebook_path", help="Path to the output notebook", default=None, type=str)
+args = parser.parse_args()
+if args.notebook_path:
+    notebook_path = os.path.join(os.getcwd(), args.notebook_path)
+    base, ext = os.path.splitext(notebook_path)
+    if ext.lower() != '.ipynb':
+        notebook_path += '.ipynb'
 
 # Global variable for code cells
 nb = nbf.new_notebook()
@@ -17,8 +25,9 @@ def ansi_to_html(ansi_text):
     return html_text
 
 def write_to_notebook():
-    with open('output_notebook.ipynb', 'w') as f:
-        nbformat.write(nb, f)
+    if args.notebook_path:
+        with open(notebook_path, 'w') as f:
+            nbformat.write(nb, f)
 
 def append_code_cell(code):
     code_cell = nbf.new_code_cell(source=code)
