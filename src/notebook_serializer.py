@@ -1,9 +1,7 @@
 import nbformat
 from nbformat import v4 as nbf
 import ansi2html
-import sys
 import os
-import json
 import argparse
 
 # main code
@@ -29,18 +27,18 @@ def write_to_notebook():
         with open(notebook_path, 'w') as f:
             nbformat.write(nb, f)
 
-def append_code_cell(code):
+def add_code_cell_to_notebook(code):
     code_cell = nbf.new_code_cell(source=code)
     nb['cells'].append(code_cell)
     write_to_notebook()
 
-def append_code_cell_output(output):
+def add_code_cell_output_to_notebook(output):
     html_content = ansi_to_html(output)
     cell_output = nbf.new_output(output_type='display_data', data={'text/html': html_content})
     nb['cells'][-1]['outputs'].append(cell_output)
     write_to_notebook()
 
-def append_code_cell_error(error):
+def add_code_cell_error_to_notebook(error):
     nbf_error_output = nbf.new_output(
         output_type='error',
         ename='Error',
@@ -50,12 +48,12 @@ def append_code_cell_error(error):
     nb['cells'][-1]['outputs'].append(nbf_error_output)
     write_to_notebook()
 
-def append_image(image, mime_type):
+def add_image_to_notebook(image, mime_type):
     image_output = nbf.new_output(output_type='display_data', data={mime_type: image})
     nb['cells'][-1]['outputs'].append(image_output)
     write_to_notebook()
 
-def append_markdown(content, title=None):
+def add_markdown_to_notebook(content, title=None):
     if title:
         content = "##### " + title + ":\n" + content
     markdown_cell = nbf.new_markdown_cell(content)

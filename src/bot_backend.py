@@ -6,7 +6,7 @@ import shutil
 from jupyter_backend import *
 from typing import *
 
-from notebook_serializer import append_markdown, append_code_cell
+from notebook_serializer import add_markdown_to_notebook, add_code_cell_to_notebook
 
 functions = [
     {
@@ -160,7 +160,7 @@ class BotBackend(GPTResponseLog):
         self.conversation.append(
             {'role': self.assistant_role_name, 'content': self.content}
         )
-        append_markdown(self.content, title="Assistant")
+        add_markdown_to_notebook(self.content, title="Assistant")
 
     def add_text_message(self, user_text):
         self.conversation.append(
@@ -168,7 +168,7 @@ class BotBackend(GPTResponseLog):
         )
         self.revocable_files.clear()
         self.update_finish_reason(finish_reason='new_input')
-        append_markdown(user_text, title="User")
+        add_markdown_to_notebook(user_text, title="User")
 
         
 
@@ -195,11 +195,11 @@ class BotBackend(GPTResponseLog):
         # I assusme this is due to hallucinatory function calls.
         try: # Try to load json formatted code.
             code_cell_obj = json.loads(self.function_args_str)
-            append_code_cell(code_cell_obj['code'])
+            add_code_cell_to_notebook(code_cell_obj['code'])
         except Exception:
             # If json.loads raises an error, it is most likely that the self.function_args_str is not json formatted,
             # and that we can treat it as the actual code.
-            append_code_cell(self.function_args_str)
+            add_code_cell_to_notebook(self.function_args_str)
 
         self.conversation.append(
             {
