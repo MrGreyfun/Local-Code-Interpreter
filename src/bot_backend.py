@@ -6,6 +6,9 @@ import shutil
 from jupyter_backend import *
 from typing import *
 
+import yaml
+from notebook_serializer import notebbok_cells, serialize_conv_into_notebook
+
 functions = [
     {
         "name": "execute_code",
@@ -158,6 +161,12 @@ class BotBackend(GPTResponseLog):
         self.conversation.append(
             {'role': self.assistant_role_name, 'content': self.content}
         )
+        notebbok_cells.append({
+            'type': 'markdown',
+            'markdown': "##### Assistant:\n" + self.content
+            }
+        )
+        serialize_conv_into_notebook()
 
     def add_text_message(self, user_text):
         self.conversation.append(
@@ -165,6 +174,13 @@ class BotBackend(GPTResponseLog):
         )
         self.revocable_files.clear()
         self.update_finish_reason(finish_reason='new_input')
+        notebbok_cells.append({
+            'type': 'markdown',
+            'markdown': "##### User:\n" + user_text
+            }
+        )
+        serialize_conv_into_notebook()
+        
 
     def add_file_message(self, path, bot_msg):
         filename = os.path.basename(path)
@@ -183,6 +199,20 @@ class BotBackend(GPTResponseLog):
         )
 
     def add_function_call_response_message(self, function_response: str, save_tokens=True):
+        # Add code to notebook cells.
+        # For some reason, the self.function_args_str is an object with a code key leading to the actual code string.
+        # example of json formatted string: '{"code": "<actual code>"}'
+        # I assusme this is due to hallucinatory function calls.
+        try: # Try to load json formatted code.
+            code_cell_obj = json.loads(self.function_args_str)
+            code_cell_obj["type"] = 'code'
+            notebbok_cells.append(code_cell_obj)
+        except Exception:
+            # If json.loads raises an error, it is most likely that the self.function_args_str is not json formatted,
+            # and that we can treat it as plain text.
+            code_cell_obj = {'type': 'code', 'code': self.function_args_str}
+            notebbok_cells.append(code_cell_obj)
+
         self.conversation.append(
             {
                 "role": self.assistant_role_name,
@@ -190,7 +220,6 @@ class BotBackend(GPTResponseLog):
                 "content": self.function_args_str
             }
         )
-
         if save_tokens and len(function_response) > 500:
             function_response = f'{function_response[:200]}\n[Output too much, the middle part output is omitted]\n ' \
                                 f'End part of output:\n{function_response[-200:]}'

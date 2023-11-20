@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from functional import *
-
+from notebook_serializer import serialize_conv_into_notebook
 
 class ChoiceStrategy(metaclass=ABCMeta):
     def __init__(self, choice):
@@ -134,10 +134,17 @@ class FinishReasonChoiceStrategy(ChoiceStrategy):
                     content_to_display=content_to_display, history=history, unique_id=bot_backend.unique_id
                 )
 
+                serialize_conv_into_notebook()
+
             except json.JSONDecodeError:
                 history.append(
                     [None, f"GPT generate wrong function args: {bot_backend.function_args_str}"]
                 )
+                whether_exit = True
+                return history, whether_exit
+
+            except KeyError as key_error:
+                history.append([None, f'Backend key_error: {key_error}'])
                 whether_exit = True
                 return history, whether_exit
 
