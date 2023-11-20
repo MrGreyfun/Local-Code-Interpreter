@@ -8,7 +8,7 @@ import argparse
 
 # main code
 parser = argparse.ArgumentParser()
-parser.add_argument("-n", "--notebook_path", help="Path to the output notebook", default=None, type=str)
+parser.add_argument("-n", "--notebook", help="Path to the output notebook", default=None, type=str)
 args = parser.parse_args()
 if args.notebook_path:
     notebook_path = os.path.join(os.getcwd(), args.notebook_path)
