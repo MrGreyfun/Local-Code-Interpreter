@@ -8,8 +8,8 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--notebook", help="Path to the output notebook", default=None, type=str)
 args = parser.parse_args()
-if args.notebook_path:
-    notebook_path = os.path.join(os.getcwd(), args.notebook_path)
+if args.notebook:
+    notebook_path = os.path.join(os.getcwd(), args.notebook)
     base, ext = os.path.splitext(notebook_path)
     if ext.lower() != '.ipynb':
         notebook_path += '.ipynb'
@@ -23,7 +23,7 @@ def ansi_to_html(ansi_text):
     return html_text
 
 def write_to_notebook():
-    if args.notebook_path:
+    if args.notebook:
         with open(notebook_path, 'w') as f:
             nbformat.write(nb, f)
 
