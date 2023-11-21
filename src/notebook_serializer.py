@@ -24,7 +24,7 @@ def ansi_to_html(ansi_text):
 
 def write_to_notebook():
     if args.notebook:
-        with open(notebook_path, 'w') as f:
+        with open(notebook_path, 'w', encoding='utf-8') as f:
             nbformat.write(nb, f)
 
 def add_code_cell_to_notebook(code):

@@ -190,17 +190,23 @@ class BotBackend(GPTResponseLog):
         )
 
     def add_function_call_response_message(self, function_response: str, save_tokens=True):
-        print(self.function_args_str)
+        # Add code cell to notebook
+        # The format of the generated code is not consistent, but it tends to be in either of the followings:
+        # -json {"code" : "<actual_code>"} format,
+        # -in json format but with \\n instead of actual line breaks
+        # -plain text
         try:
-            from functional import parse_json
-            code_str = parse_json(self.function_args_str, True)
-            if code_str:
-                add_code_cell_to_notebook(code_str)
+            # We assume that the generated code is in bad formated json.
+            # Replace occurences of '\\n' into '\n'
+            code_obj = json.loads(self.function_args_str.replace('\\n', '\n'))
+            print("succefully loaded code as json:", code_obj['code'])
+            add_code_cell_to_notebook(code_obj['code'])
         except Exception as e:
-            print(f"Caught exception while trying to add code to notebook: {e}")
-        # code_str = get_code_str(self)
-        # add_code_cell_to_notebook(code_str)
-
+            print("json.loads raised an exception:", e)
+            print("Code:", self.function_args_str)
+            # If an exception was raised, it most likely means that the code is in plain text.
+            add_code_cell_to_notebook(self.function_args_str)
+        
         self.conversation.append(
             {
                 "role": self.assistant_role_name,

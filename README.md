@@ -96,6 +96,13 @@ Please Note:
 
 3. Access the generated link in your browser to start using the Local Code Interpreter.
 
+4. Use the `-n` or `--notebook` option to save the conversation in a notebook.
+   By default the notebook is saved in the working directory, but you can add a path to save it elsewhere.
+   ```shell
+   python web_ui.py -n <path_to_notebook>
+   ```
+   [notebook_gif_demo](example_img/save_to_notebook_demo.gif)
+
 ## Example
 
 Imagine uploading a data file and requesting the model to perform linear regression and visualize the data. See how Local Code Interpreter provides a seamless experience:
