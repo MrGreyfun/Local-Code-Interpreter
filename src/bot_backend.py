@@ -5,8 +5,6 @@ import copy
 import shutil
 from jupyter_backend import *
 from typing import *
-# from functional import parse_json
-# from response_parser import get_code_str
 from notebook_serializer import add_markdown_to_notebook, add_code_cell_to_notebook
 
 functions = [
