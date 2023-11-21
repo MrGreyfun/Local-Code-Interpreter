@@ -101,7 +101,6 @@ Please Note:
    ```shell
    python web_ui.py -n <path_to_notebook>
    ```
-   [notebook_gif_demo](example_img/save_to_notebook_demo.gif)
 
 ## Example
 
@@ -123,5 +122,7 @@ Imagine uploading a data file and requesting the model to perform linear regress
    ![Example 5](example_img/5.jpg)
    ![Example 6](example_img/6.jpg)
 
+6. Use `--notebook` comand to save the conversation:
+   ![notebook_gif_demo](example_img/save_to_notebook_demo.gif)
 
 
