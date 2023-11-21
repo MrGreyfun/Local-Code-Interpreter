@@ -1,7 +1,6 @@
 from bot_backend import *
 import base64
 import time
-
 from notebook_serializer import add_code_cell_error_to_notebook, add_image_to_notebook, add_code_cell_output_to_notebook
 
 def chat_completion(bot_backend: BotBackend):

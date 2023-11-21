@@ -14,3 +14,4 @@ PyPDF2
 pdfminer.six
 sympy
 scikit-learn
+ansi2html

@@ -5,7 +5,8 @@ import copy
 import shutil
 from jupyter_backend import *
 from typing import *
-
+# from functional import parse_json
+# from response_parser import get_code_str
 from notebook_serializer import add_markdown_to_notebook, add_code_cell_to_notebook
 
 functions = [
@@ -189,17 +190,16 @@ class BotBackend(GPTResponseLog):
         )
 
     def add_function_call_response_message(self, function_response: str, save_tokens=True):
-        # Add code to notebook cells.
-        # For some reason, the self.function_args_str is an object with a code key leading to the actual code string.
-        # example of json formatted string: '{"code": "<actual code>"}'
-        # I assusme this is due to hallucinatory function calls.
-        try: # Try to load json formatted code.
-            code_cell_obj = json.loads(self.function_args_str)
-            add_code_cell_to_notebook(code_cell_obj['code'])
-        except Exception:
-            # If json.loads raises an error, it is most likely that the self.function_args_str is not json formatted,
-            # and that we can treat it as the actual code.
-            add_code_cell_to_notebook(self.function_args_str)
+        print(self.function_args_str)
+        try:
+            from functional import parse_json
+            code_str = parse_json(self.function_args_str, True)
+            if code_str:
+                add_code_cell_to_notebook(code_str)
+        except Exception as e:
+            print(f"Caught exception while trying to add code to notebook: {e}")
+        # code_str = get_code_str(self)
+        # add_code_cell_to_notebook(code_str)
 
         self.conversation.append(
             {

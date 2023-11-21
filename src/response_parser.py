@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod
 from functional import *
-# from notebook_serializer import serialize_conv_into_notebook
 
 class ChoiceStrategy(metaclass=ABCMeta):
     def __init__(self, choice):
