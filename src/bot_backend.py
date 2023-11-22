@@ -63,6 +63,7 @@ class GPTResponseLog:
         self.content = ''
         self.function_name = None
         self.function_args_str = ''
+        self.code_str = ''
         self.display_code_block = ''
         self.finish_reason = 'stop'
         self.bot_history = None
@@ -75,6 +76,7 @@ class GPTResponseLog:
                       'content': '',
                       'function_name': None,
                       'function_args_str': '',
+                      'code_str': '',
                       'display_code_block': '',
                       'finish_reason': 'stop',
                       'bot_history': None}
@@ -98,6 +100,9 @@ class GPTResponseLog:
 
     def add_function_args_str(self, function_args_str: str):
         self.function_args_str += function_args_str
+
+    def update_code_str(self, code_str: str):
+        self.code_str = code_str
 
     def update_display_code_block(self, display_code_block):
         self.display_code_block = display_code_block
