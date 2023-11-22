@@ -81,6 +81,7 @@ class ArgumentsFunctionCallChoiceStrategy(ChoiceStrategy):
             solely of raw code text (not a JSON format).
             """
             temp_code_str = bot_backend.function_args_str
+            bot_backend.update_code_str(code_str=temp_code_str)
             bot_backend.update_display_code_block(
                 display_code_block="\n🔴Working:\n```python\n{}\n```".format(temp_code_str)
             )
@@ -88,6 +89,7 @@ class ArgumentsFunctionCallChoiceStrategy(ChoiceStrategy):
             history[-1][1] += bot_backend.display_code_block
         else:
             temp_code_str = parse_json(function_args=bot_backend.function_args_str, finished=False)
+            bot_backend.update_code_str(code_str=temp_code_str)
             if temp_code_str is not None:
                 bot_backend.update_display_code_block(
                     display_code_block="\n🔴Working:\n```python\n{}\n```".format(
@@ -116,6 +118,7 @@ class FinishReasonChoiceStrategy(ChoiceStrategy):
 
                 code_str = self.get_code_str(bot_backend)
 
+                bot_backend.update_code_str(code_str=code_str)
                 bot_backend.update_display_code_block(
                     display_code_block="\n🟢Working:\n```python\n{}\n```".format(code_str)
                 )
