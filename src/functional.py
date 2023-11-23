@@ -1,7 +1,7 @@
 from bot_backend import *
 import base64
 import time
-
+from notebook_serializer import add_code_cell_error_to_notebook, add_image_to_notebook, add_code_cell_output_to_notebook
 
 def chat_completion(bot_backend: BotBackend):
     model_choice = bot_backend.gpt_model_choice
@@ -17,19 +17,26 @@ def chat_completion(bot_backend: BotBackend):
 def add_function_response_to_bot_history(content_to_display, history, unique_id):
     images, text = [], []
 
+
     # terminal output
     error_occurred = False
+
     for mark, out_str in content_to_display:
         if mark in ('stdout', 'execute_result_text', 'display_text'):
             text.append(out_str)
+            add_code_cell_output_to_notebook(out_str)
         elif mark in ('execute_result_png', 'execute_result_jpeg', 'display_png', 'display_jpeg'):
             if 'png' in mark:
                 images.append(('png', out_str))
+                add_image_to_notebook(out_str, 'image/png')
             else:
+                add_image_to_notebook(out_str, 'image/jpeg')
                 images.append(('jpg', out_str))
         elif mark == 'error':
+            # Set output type to error
             text.append(delete_color_control_char(out_str))
             error_occurred = True
+            add_code_cell_error_to_notebook(out_str)
     text = '\n'.join(text).strip('\n')
     if error_occurred:
         history.append([None, f'❌Terminal output:\n```shell\n\n{text}\n```'])
@@ -114,3 +121,4 @@ def parse_json(function_args: str, finished: bool):
 
     except Exception as e:
         return None
+    

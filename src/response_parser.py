@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from functional import *
 
-
 class ChoiceStrategy(metaclass=ABCMeta):
     def __init__(self, choice):
         self.choice = choice
@@ -141,6 +140,11 @@ class FinishReasonChoiceStrategy(ChoiceStrategy):
                 history.append(
                     [None, f"GPT generate wrong function args: {bot_backend.function_args_str}"]
                 )
+                whether_exit = True
+                return history, whether_exit
+
+            except KeyError as key_error:
+                history.append([None, f'Backend key_error: {key_error}'])
                 whether_exit = True
                 return history, whether_exit
 

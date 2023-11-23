@@ -5,6 +5,7 @@ import copy
 import shutil
 from jupyter_backend import *
 from typing import *
+from notebook_serializer import add_markdown_to_notebook, add_code_cell_to_notebook
 
 functions = [
     {
@@ -163,6 +164,7 @@ class BotBackend(GPTResponseLog):
         self.conversation.append(
             {'role': self.assistant_role_name, 'content': self.content}
         )
+        add_markdown_to_notebook(self.content, title="Assistant")
 
     def add_text_message(self, user_text):
         self.conversation.append(
@@ -170,6 +172,9 @@ class BotBackend(GPTResponseLog):
         )
         self.revocable_files.clear()
         self.update_finish_reason(finish_reason='new_input')
+        add_markdown_to_notebook(user_text, title="User")
+
+        
 
     def add_file_message(self, path, bot_msg):
         filename = os.path.basename(path)
@@ -188,6 +193,8 @@ class BotBackend(GPTResponseLog):
         )
 
     def add_function_call_response_message(self, function_response: str, save_tokens=True):
+        add_code_cell_to_notebook(self.code_str)
+
         self.conversation.append(
             {
                 "role": self.assistant_role_name,
@@ -195,7 +202,6 @@ class BotBackend(GPTResponseLog):
                 "content": self.function_args_str
             }
         )
-
         if save_tokens and len(function_response) > 500:
             function_response = f'{function_response[:200]}\n[Output too much, the middle part output is omitted]\n ' \
                                 f'End part of output:\n{function_response[-200:]}'
