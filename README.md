@@ -22,7 +22,45 @@ Executing AI-generated code without human review on your own device is not safe.
 
 ## Usage
 
-### Installation
+### Run in Docker
+
+#### Directly run
+
+```bash
+docker run -it --rm -e OPENAI_API_KEY=youOpenApiKey -p 7860:7860 zh3305/localcodeinterpreter:latest
+```
+
+##### Environment variables
+
+### `OPENAI_API_KEY` 
+
+API key
+
+### `INTERPETER_API_TYPE`
+
+Default is `open_ai`
+
+### `INTERPETER_API_BASE` 
+
+API access address, default is `https://api.openai.com/v1`, can use reverse proxy address, such as the proxy interface address provided by ChatGPT Next Web `https://chatgpt2.nextweb.fun/api/proxy/v1`
+
+### `INTERPETER_API_VERSION`
+
+If you use Azure OpenAI service, set it to `2023-07-01-preview`, other API versions do not support function calls.
+
+### `http_proxy`, `https_proxy` 
+
+Proxy server address, can set the accessed proxy server. For example: -e http_proxy=http://192.168.1.10:11992 `http proxy address` -e https_proxy=http://192.168.1.10:11992 `https proxy address`
+
+
+#### Manually build Docker image
+
+```bash 
+docker build --pull --rm -f "Dockerfile" -t localcodeinterpreter:latest "."
+```
+### Manual deployment
+
+#### Installation
 
 1. Clone this repository to your local device
    ```shell
@@ -45,7 +83,7 @@ Executing AI-generated code without human review on your own device is not safe.
    ```shell
    pip install -r requirements_full.txt
    ```
-### Configuration
+#### Configuration
 
 1. Create a `config.json` file in the `src` directory, following the examples provided in the `config_example` directory.
 
@@ -82,7 +120,7 @@ Please Note:
         export OPENAI_API_KEY=<YOUR-API-KEY>
         ```
 
-## Getting Started
+#### Getting Started
 
 1. Navigate to the `src` directory.
    ```shell
