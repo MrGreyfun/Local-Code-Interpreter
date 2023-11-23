@@ -1,6 +1,7 @@
 notebook==6.5.4
 openai==0.27.8
 gradio==3.39.0
+ansi2html==1.8.0
 numpy
 scipy
 openpyxl
@@ -14,4 +15,3 @@ PyPDF2
 pdfminer.six
 sympy
 scikit-learn
-ansi2html

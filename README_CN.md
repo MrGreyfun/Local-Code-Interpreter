@@ -6,6 +6,7 @@ OpenAI的ChatGPT代码解释器（Code Interpreter或Advanced Data Analysis）�
 ## 简介
 
 OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data Analysis）是一款强大的AI工具。然而，其在在线沙箱环境中运行代码的特性导致了一些限制，如包的缺失、上传速度较慢、仅支持上传不超过100MB的文件以及代码最多只能运行120秒等。为此，我们推出了本地代码解释器（Local Code Interpreter）。这款工具允许您在自己的设备上，利用自己专属的Python环境来执行ChatGPT生成的代码，从而解除了原有解释器的各种限制。
+![notebook_gif_demo](example_img/save_to_notebook_demo.gif)
 
 ## 优势
 
@@ -16,6 +17,8 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
 - **可用GPT-3.5**：官方代码解释器只能在GPT-4中使用，但现在你甚至可以在一轮对话中自由切换GPT-3.5和GPT-4。
 
 - **数据更安全**：代码在本地运行，无需将文件上传至网络，提高了数据的安全性。
+
+- **支持Jupyter**：本程序可将代码和对话历史保存至Jupyter notebook文件中供以后使用。
 
 ## 注意事项
 在您自己的设备上执行AI生成但未经人工审核的代码可能存在安全风险。在运行此程序前，您应当采用一些安全措施，例如使用虚拟机，以保护您的设备和数据。使用此程序所产生的所有后果，您需自行承担。
@@ -35,8 +38,9 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
    Jupyter Notebook    6.5.4
    gradio              3.39.0
    openai              0.27.8
+   ansi2html           1.8.0 
    ```
-   其他系统或库版本也可能有效。
+   其他系统或库版本也可能有效。请注意，不要将`openai`包升级到最新的`1.x`版本，该版本已重写，与旧版本不兼容。
    您可以使用以下命令直接安装所需的软件包：
    ```shell
    pip install -r requirements.txt
@@ -55,13 +59,16 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
 1. **正确设置`model_name`**
     该程序依赖于`0163`版本的模型的函数调用能力，这些模型包括：
     - `gpt-3.5-turbo-0613` (及其16K版本)
+    - `gpt-3.5-turbo-1106`
     - `gpt-4-0613` (及其32K版本)
+    - `gpt-4-1106-preview` (未测试)
+    - `gpt-4-vision-preview` (未测试, 暂不支持图像输入)
 
-    旧版本的模型将无法使用。
+   旧版本的模型将无法使用。
 
-    对于使用Azure OpenAI的用户：
-    - 请将`model_name`设置为您的模型的部署名（deployment name）。
-    - 确认部署的模型是`0613`版本。
+   对于使用Azure OpenAI的用户：
+   - 请将`model_name`设置为您的模型的部署名（deployment name）。
+   - 确认部署的模型是`0613`版本。
 
 2. **API版本设置**
     如果您使用Azure OpenAI服务，请在`config.json`文件中将`API_VERSION`设置为`2023-07-01-preview`，其他API版本不支持函数调用。
@@ -95,6 +102,12 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
    ```
 
 3. 在浏览器中访问终端生成的链接，开始使用本地版代码解释器。
+
+4. 添加`-n`或`--notebook`参数可以将对话保存到Jupyter notebook中。 
+   默认情况下，该Jupyter notebook文件保存在工作目录中，但您添加路径以将其保存到其他位置。
+   ```shell
+   python web_ui.py-n<path_to_notebook>
+   ```
 
 ## 示例
 
