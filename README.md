@@ -6,6 +6,7 @@ A local implementation of OpenAI's ChatGPT Code Interpreter (Advanced Data Analy
 ## Introduction
 
 OpenAI's Code Interpreter (currently renamed as Advanced Data Analysis) for ChatGPT is a revolutionary feature that allows the execution of Python code within the AI model. However, it execute code within an online sandbox and has certain limitations. In this project, we present Local Code Interpreter – which enables code execution on your local device, offering enhanced flexibility, security, and convenience.
+![notebook_gif_demo](example_img/save_to_notebook_demo.gif)
 
 ## Key Advantages
 
@@ -16,6 +17,8 @@ OpenAI's Code Interpreter (currently renamed as Advanced Data Analysis) for Chat
 - **GPT-3.5 Availability**: While official Code Interpreter is only available for GPT-4 model, the Local Code Interpreter offers the flexibility to switch between both GPT-3.5 and GPT-4 models.
 
 - **Enhanced Data Security**: Keep your data more secure by running code locally, minimizing data transfer over the internet.
+
+- **Jupyter Support**: You can save all the code and conversation history in a Jupyter notebook for future use.
 
 ## Note
 Executing AI-generated code without human review on your own device is not safe. You are responsible for taking measures to protect the security of your device and data (such as using a virtural machine) before launching this program. All consequences caused by using this program shall be borne by youself.
@@ -35,8 +38,9 @@ Executing AI-generated code without human review on your own device is not safe.
    Jupyter Notebook    6.5.4
    gradio              3.39.0
    openai              0.27.8
+   ansi2html           1.8.0 
    ```
-   Other systems or package versions may also work.
+   Other systems or package versions may also work. Please note that you should not update the openai package to the latest `1.x` version, as it has been rewritten and is not compatible with older versions.
    You can use the following command to directly install the required packages:
    ```shell
    pip install -r requirements.txt
@@ -53,15 +57,18 @@ Executing AI-generated code without human review on your own device is not safe.
 
 Please Note:
 1. **Set the `model_name` Correctly**
-    This program relies on the function calling capability of the `0613` version of models:
-    - `gpt-3.5-turbo-0613` (and its' 16K version)
-    - `gpt-4-0613` (and its' 32K version)
+    This program relies on the function calling capability of the `0613` or newer versions of models:
+    - `gpt-3.5-turbo-0613` (and its 16K version)
+    - `gpt-3.5-turbo-1106`
+    - `gpt-4-0613` (and its 32K version)
+    - `gpt-4-1106-preview` (not tested yet)
+    - `gpt-4-vision-preview` (not tested yet, vision input temporarily not supported)
 
     Older versions of the models will not work. 
 
     For Azure OpenAI service users:
     - Set the `model_name` as your deployment name.
-    - Confirm that the deployed model corresponds to the `0613` version.
+    - Confirm that the deployed model corresponds to the `0613` or newer version.
 
 2. **API Version Settings**
     If you're using Azure OpenAI service, set the `API_VERSION` to `2023-07-01-preview` in the `config.json` file. Note that other API versions do not support the necessary function calls for this program.
@@ -96,8 +103,8 @@ Please Note:
 
 3. Access the generated link in your browser to start using the Local Code Interpreter.
 
-4. Use the `-n` or `--notebook` option to save the conversation in a notebook.
-   By default the notebook is saved in the working directory, but you can add a path to save it elsewhere.
+4. Use the `-n` or `--notebook` option to save the conversation in a Jupyter notebook.
+   By default, the notebook is saved in the working directory, but you can add a path to save it elsewhere.
    ```shell
    python web_ui.py -n <path_to_notebook>
    ```
@@ -121,8 +128,3 @@ Imagine uploading a data file and requesting the model to perform linear regress
 5. The final result meets your requirements:
    ![Example 5](example_img/5.jpg)
    ![Example 6](example_img/6.jpg)
-
-6. Use `--notebook` comand to save the conversation:
-   ![notebook_gif_demo](example_img/save_to_notebook_demo.gif)
-
-
