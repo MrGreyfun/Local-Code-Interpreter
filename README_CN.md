@@ -40,7 +40,7 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
    openai              0.27.8
    ansi2html           1.8.0 
    ```
-   其他系统或库版本也可能有效。请注意，不要将`openai`包升级到最新的`1.x`版本，该版本已重写，与旧版本不兼容。
+   其他系统或库版本也可能有效。请注意，不要将`openai`包升级至最新的`1.x`版本，该版本已重写，与旧版本不兼容。
    您可以使用以下命令直接安装所需的软件包：
    ```shell
    pip install -r requirements.txt

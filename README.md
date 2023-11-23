@@ -40,7 +40,7 @@ Executing AI-generated code without human review on your own device is not safe.
    openai              0.27.8
    ansi2html           1.8.0 
    ```
-   Other systems or package versions may also work. Please note that you should not update the openai package to the latest `1.x` version, as it has been rewritten and is not compatible with older versions.
+   Other systems or package versions may also work. Please note that you should not update the `openai` package to the latest `1.x` version, as it has been rewritten and is not compatible with older versions.
    You can use the following command to directly install the required packages:
    ```shell
    pip install -r requirements.txt
