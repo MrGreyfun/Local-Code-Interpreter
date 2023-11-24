@@ -129,10 +129,7 @@ class BotBackend(GPTResponseLog):
         self._init_kwargs_for_chat_completion()
 
         for cell in nb['cells']:
-            # print("======================", cell['cell_type'])
             if cell['cell_type'] == 'code':
-                # print("=========")
-                # print(cell['source'])
                 _, _ = self.jupyter_kernel.execute_code(cell['source'])
                 self.conversation.append(
                     {'role': "function", 'name': "python", 'content': cell['source']}
@@ -147,8 +144,6 @@ class BotBackend(GPTResponseLog):
                                     text_output = soup.get_text().strip()
                                 else:
                                     text_output = output_data
-                                # print("=========output data")
-                                # print(text_output)
                                 self.conversation.append(
                                     {
                                         "role": "function",
@@ -157,7 +152,6 @@ class BotBackend(GPTResponseLog):
                                     }
                                 )
                             if 'image' in mime_type:
-                                # print("=========image")
                                 self.conversation.append(
                                     {
                                         "role": "function",
@@ -167,8 +161,6 @@ class BotBackend(GPTResponseLog):
                                 )
                     if output['output_type'] == 'error':
                         for tracebak in output['traceback']:
-                                # print("=========traceback")
-                                # print(text_output)
                                 self.conversation.append(
                                     {
                                         "role": "function",
@@ -179,24 +171,16 @@ class BotBackend(GPTResponseLog):
 
             if cell['cell_type'] == 'markdown':
                 source = cell['source']
-                # print(source)
                 if source.startswith("##### User:\n"):
                     stripped_source = source[len("#####User:\n")+1:]
                     self.conversation.append(
                         {'role': "user", 'content': stripped_source}
                     )
-                    # print("=========user")
-                    # print(stripped_source)
                 if source.startswith("##### Assistant:\n"):
                     stripped_source = source[len("#####Assistant:\n")+1:]
                     self.conversation.append(
                         {'role': 'assistant', 'content': stripped_source}
                     )
-                    # print("=========assistant")
-                    # print(stripped_source)
-                
-        # print("=========================bot conversation")
-        # print(json.dumps(self.conversation, indent=1))
 
                 
 
