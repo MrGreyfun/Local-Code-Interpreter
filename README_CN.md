@@ -104,7 +104,7 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
 3. 在浏览器中访问终端生成的链接，开始使用本地版代码解释器。
 
 4. 添加`-n`或`--notebook`参数可以将对话保存到Jupyter notebook中。 
-   默认情况下，该Jupyter notebook文件保存在工作目录中，您可以添加路径以将其保存到其他位置。
+   默认情况下，该Jupyter notebook文件保存在工作目录中，您可以添加路径以将其保存到其它位置。
    ```shell
    python web_ui.py-n<path_to_notebook>
    ```
