@@ -57,7 +57,7 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
 
 请注意：
 1. **正确设置`model_name`**
-    该程序依赖于`0163`版本的模型的函数调用能力，这些模型包括：
+    该程序依赖于`0163`及以上版本的模型的函数调用能力，这些模型包括：
     - `gpt-3.5-turbo-0613` (及其16K版本)
     - `gpt-3.5-turbo-1106`
     - `gpt-4-0613` (及其32K版本)
@@ -68,7 +68,7 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
 
    对于使用Azure OpenAI的用户：
    - 请将`model_name`设置为您的模型的部署名（deployment name）。
-   - 确认部署的模型是`0613`版本。
+   - 确认部署的模型是`0613`及以上版本。
 
 2. **API版本设置**
     如果您使用Azure OpenAI服务，请在`config.json`文件中将`API_VERSION`设置为`2023-07-01-preview`，其他API版本不支持函数调用。
