@@ -1,12 +1,48 @@
 from bot_backend import *
 import base64
 import time
+import tiktoken
 from notebook_serializer import add_code_cell_error_to_notebook, add_image_to_notebook, add_code_cell_output_to_notebook
+
+context_window_per_model = {
+    'gpt-4-1106-preview': 128000,
+    'gpt-4': 8192,
+    'gpt-4-32k': 32768,
+    'gpt-4-0613	': 8192,
+    'gpt-4-32k-0613': 32768,
+    'gpt-3.5-turbo-1106': 16385,
+    'gpt-3.5-turbo': 4096,
+    'gpt-3.5-turbo-16k': 16385,
+    'gpt-3.5-turbo-0613': 4096,
+}
+
+def get_conversation_slice(conversation, model):
+    encoder = tiktoken.encoding_for_model(model)
+    count_tokens = lambda txt: len(encoder.encode(txt))
+    first_message_i = -1
+    nb_tokens = count_tokens(conversation[0]['content'])
+    for message in conversation[1::-1]:
+        nb_tokens += count_tokens(message['content'])
+        if nb_tokens > context_window_per_model[model]:
+            break
+        first_message_i -= 1
+    sliced_conv = [conversation[0]] + conversation[first_message_i:-1]
+    # print(json.dumps(sliced_conv, indent=1))
+    # print("================================")
+    # count_tokens_in_conv = lambda conv : sum([count_tokens(message['content']) for message in conv])
+    # print("actual_conv_nb_tokens:", count_tokens_in_conv(conversation))
+    # print("sliced conv tokens:", count_tokens_in_conv(sliced_conv))
+    # print("context window:", context_window_per_model[model])
+    # print("model name:", model)
+    return sliced_conv
 
 def chat_completion(bot_backend: BotBackend):
     model_choice = bot_backend.gpt_model_choice
     config = bot_backend.config
+    # print(json.dumps(config, indent=1))
+    model_name = config['model'][model_choice]['model_name']
     kwargs_for_chat_completion = bot_backend.kwargs_for_chat_completion
+    kwargs_for_chat_completion['messages'] = get_conversation_slice(kwargs_for_chat_completion['messages'], model_name)
 
     assert config['model'][model_choice]['available'], f"{model_choice} is not available for your API key"
 
