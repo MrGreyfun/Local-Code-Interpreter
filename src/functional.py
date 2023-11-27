@@ -25,7 +25,7 @@ def get_conversation_slice(conversation, model):
     count_tokens = lambda txt: len(encoder.encode(txt))
     first_message_i = -1
     nb_tokens = count_tokens(conversation[0]['content'])
-    for message in conversation[1::-1]:
+    for message in conversation[1:-1:-1]:
         nb_tokens += count_tokens(message['content'])
         if nb_tokens > context_window_per_model[model]:
             break
