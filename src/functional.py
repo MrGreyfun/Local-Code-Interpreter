@@ -4,7 +4,7 @@ import time
 import tiktoken
 from notebook_serializer import add_code_cell_error_to_notebook, add_image_to_notebook, add_code_cell_output_to_notebook
 
-context_window_per_model = {
+CONTEXT_WINDOW_PER_MODEL = {
     'gpt-4': 8192,
     'gpt-4-32k': 32768,
     'gpt-4-0613	': 8192,
@@ -16,7 +16,9 @@ context_window_per_model = {
     'gpt-4-1106-preview': 128000,
 }
 
-def get_conversation_slice(conversation, model):
+SLICED_CONV_MESSAGE = "[rest of the conversation has been omitted to feet in the context window]"
+
+def get_conversation_slice(conversation, model, min_output_tokens_count=500):
     """
     Function to get a slice of the conversation that fits in the model's context window.
     returns: The conversation with the first message(explaining the role of the assistant) + the last x messages that can fit in the context window.
@@ -25,9 +27,11 @@ def get_conversation_slice(conversation, model):
     count_tokens = lambda txt: len(encoder.encode(txt))
     nb_tokens = count_tokens(conversation[0]['content'])
     sliced_conv = [conversation[0]]
+    max_tokens = CONTEXT_WINDOW_PER_MODEL[model] - count_tokens(SLICED_CONV_MESSAGE) - min_output_tokens_count
     for message in conversation[-1:0:-1]:
         nb_tokens += count_tokens(message['content'])
-        if nb_tokens > context_window_per_model[model]:
+        if nb_tokens > max_tokens:
+            sliced_conv.insert(1, {'role':'system', 'content':SLICED_CONV_MESSAGE})
             break
         sliced_conv.insert(1, message)
     return sliced_conv
