@@ -17,6 +17,10 @@ context_window_per_model = {
 }
 
 def get_conversation_slice(conversation, model):
+    """
+    Function to get a slice of the conversation that fits in the model's context window.
+    returns: The conversation with the first message(explaining the role of the assistant) + the last x messages that can fit in the context window.
+    """
     encoder = tiktoken.encoding_for_model(model)
     count_tokens = lambda txt: len(encoder.encode(txt))
     first_message_i = -1
@@ -27,13 +31,6 @@ def get_conversation_slice(conversation, model):
             break
         first_message_i -= 1
     sliced_conv = [conversation[0]] + conversation[first_message_i:-1]
-    # print(json.dumps(sliced_conv, indent=1))
-    # print("================================")
-    # count_tokens_in_conv = lambda conv : sum([count_tokens(message['content']) for message in conv])
-    # print("actual_conv_nb_tokens:", count_tokens_in_conv(conversation))
-    # print("sliced conv tokens:", count_tokens_in_conv(sliced_conv))
-    # print("context window:", context_window_per_model[model])
-    # print("model name:", model)
     return sliced_conv
 
 def chat_completion(bot_backend: BotBackend):
