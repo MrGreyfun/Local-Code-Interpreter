@@ -36,7 +36,6 @@ def get_conversation_slice(conversation, model):
 def chat_completion(bot_backend: BotBackend):
     model_choice = bot_backend.gpt_model_choice
     config = bot_backend.config
-    # print(json.dumps(config, indent=1))
     model_name = config['model'][model_choice]['model_name']
     kwargs_for_chat_completion = bot_backend.kwargs_for_chat_completion
     kwargs_for_chat_completion['messages'] = get_conversation_slice(kwargs_for_chat_completion['messages'], model_name)
