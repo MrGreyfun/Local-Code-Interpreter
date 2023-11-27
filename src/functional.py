@@ -5,15 +5,15 @@ import tiktoken
 from notebook_serializer import add_code_cell_error_to_notebook, add_image_to_notebook, add_code_cell_output_to_notebook
 
 context_window_per_model = {
-    'gpt-4-1106-preview': 128000,
     'gpt-4': 8192,
     'gpt-4-32k': 32768,
     'gpt-4-0613	': 8192,
-    'gpt-4-32k-0613': 32768,
-    'gpt-3.5-turbo-1106': 16385,
     'gpt-3.5-turbo': 4096,
+    'gpt-4-32k-0613': 32768,
     'gpt-3.5-turbo-16k': 16385,
     'gpt-3.5-turbo-0613': 4096,
+    'gpt-3.5-turbo-1106': 16385,
+    'gpt-4-1106-preview': 128000,
 }
 
 def get_conversation_slice(conversation, model):
@@ -23,21 +23,20 @@ def get_conversation_slice(conversation, model):
     """
     encoder = tiktoken.encoding_for_model(model)
     count_tokens = lambda txt: len(encoder.encode(txt))
-    first_message_i = -1
     nb_tokens = count_tokens(conversation[0]['content'])
-    for message in conversation[-1:1:-1]:
+    sliced_conv = [conversation[0]]
+    for message in conversation[-1:0:-1]:
         nb_tokens += count_tokens(message['content'])
         if nb_tokens > context_window_per_model[model]:
             break
-        first_message_i -= 1
-    sliced_conv = [conversation[0]] + conversation[first_message_i:-1]
+        sliced_conv.insert(1, message)
     return sliced_conv
 
 def chat_completion(bot_backend: BotBackend):
     model_choice = bot_backend.gpt_model_choice
     config = bot_backend.config
     model_name = config['model'][model_choice]['model_name']
-    kwargs_for_chat_completion = bot_backend.kwargs_for_chat_completion
+    kwargs_for_chat_completion = copy.deepcopy(bot_backend.kwargs_for_chat_completion)
     kwargs_for_chat_completion['messages'] = get_conversation_slice(kwargs_for_chat_completion['messages'], model_name)
 
     assert config['model'][model_choice]['available'], f"{model_choice} is not available for your API key"
