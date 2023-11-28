@@ -34,7 +34,6 @@ def chat_completion(bot_backend: BotBackend):
 
     assert config['model'][model_choice]['available'], f"{model_choice} is not available for your API key"
 
-    model_name = config['model'][model_choice]['model_name']
     assert model_name in config['model_context_window'], \
         f"{model_name} lacks context window information. Please check the config.json file."
 
