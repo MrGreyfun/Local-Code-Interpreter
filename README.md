@@ -74,7 +74,7 @@ Please Note:
     If you're using Azure OpenAI service, set the `API_VERSION` to `2023-07-01-preview` in the `config.json` file. Note that other API versions do not support the necessary function calls for this program.
 
 3. **Model Context Window Settings**
-    The model_context_window field records the context window for each model, which the program uses to slice conversations when they exceed the model's context window capacity. 
+    The `model_context_window` field records the context window for each model, which the program uses to slice conversations when they exceed the model's context window capacity. 
     Azure OpenAI service users should manually insert context window information using the model's deployment name in the following format:
     ```json
     "<YOUR-DEPLOYMENT-NAME>": <contex_window (integer)>
