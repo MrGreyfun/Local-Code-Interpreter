@@ -12,5 +12,9 @@
       "model_name": "<YOUR-DEPLOYMENT-NAME>",
       "available": true
     }
+  },
+  "model_context_window": {
+    "<YOUR-DEPLOYMENT-NAME1>": <contex_window (integer)>,
+    "<YOUR-DEPLOYMENT-NAME2>": <contex_window (integer)>
   }
 }
