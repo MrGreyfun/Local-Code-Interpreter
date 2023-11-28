@@ -4,18 +4,6 @@ import time
 import tiktoken
 from notebook_serializer import add_code_cell_error_to_notebook, add_image_to_notebook, add_code_cell_output_to_notebook
 
-CONTEXT_WINDOW_PER_MODEL = {
-    'gpt-4': 8192,
-    'gpt-4-32k': 32768,
-    'gpt-4-0613	': 8192,
-    'gpt-3.5-turbo': 4096,
-    'gpt-4-32k-0613': 32768,
-    'gpt-3.5-turbo-16k': 16385,
-    'gpt-3.5-turbo-0613': 4096,
-    'gpt-3.5-turbo-1106': 16385,
-    'gpt-4-1106-preview': 128000,
-}
-
 SLICED_CONV_MESSAGE = "[rest of the conversation has been omitted to feet in the context window]"
 
 def get_conversation_slice(conversation, model, min_output_tokens_count=500):
@@ -27,7 +15,8 @@ def get_conversation_slice(conversation, model, min_output_tokens_count=500):
     count_tokens = lambda txt: len(encoder.encode(txt))
     nb_tokens = count_tokens(conversation[0]['content'])
     sliced_conv = [conversation[0]]
-    max_tokens = CONTEXT_WINDOW_PER_MODEL[model] - count_tokens(SLICED_CONV_MESSAGE) - min_output_tokens_count
+    context_windw_limit = int(config['model_context_window'][model])
+    max_tokens = context_windw_limit - count_tokens(SLICED_CONV_MESSAGE) - min_output_tokens_count
     for message in conversation[-1:0:-1]:
         nb_tokens += count_tokens(message['content'])
         if nb_tokens > max_tokens:
