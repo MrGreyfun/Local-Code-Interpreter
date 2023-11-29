@@ -182,6 +182,7 @@ class BotBackend(GPTResponseLog):
                         {'role': 'assistant', 'content': stripped_source}
                     )
 
+        print("conversation:", json.dumps(self.conversation, indent=1))
                 
 
     def _init_conversation(self):
