@@ -148,13 +148,13 @@ if __name__ == '__main__':
                 with gr.Column(scale=0.15, min_width=0):
                     file_upload_button = gr.UploadButton("📁", file_types=['file'])
             with gr.Row(equal_height=True):
-                with gr.Column(scale=0.2):
+                with gr.Column(scale=0.08, min_width=0):
                     check_box = gr.Checkbox(label="Use GPT-4", interactive=config['model']['GPT-4']['available'])
-                with gr.Column(scale=0.5):
+                with gr.Column(scale=0.617, min_width=0):
                     token_count_display_text = f'''**Token count**: 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                         **Maximum token limit**: {config['model_context_window'][config['model']['GPT-3.5']['model_name']]}
                     '''
-                    token_count_monitor = gr.Markdown(value=token_count_display_text)
+                    token_monitor = gr.Markdown(value=token_count_display_text)
                 with gr.Column(scale=0.15, min_width=0):
                     restart_button = gr.Button(value='🔄 Restart')
                 with gr.Column(scale=0.15, min_width=0):
@@ -169,10 +169,10 @@ if __name__ == '__main__':
         txt_msg.then(fn=refresh_file_display, inputs=[state], outputs=[file_output])
         txt_msg.then(lambda: gr.update(interactive=True), None, [text_box], queue=False)
         txt_msg.then(lambda: gr.Button.update(interactive=False), None, [undo_file_button], queue=False)
-        txt_msg.then(fn=refresh_token_count, inputs=[state], outputs=[token_count_monitor])
+        txt_msg.then(fn=refresh_token_count, inputs=[state], outputs=[token_monitor])
 
         check_box.change(fn=switch_to_gpt4, inputs=[state, check_box]).then(
-            fn=refresh_token_count, inputs=[state], outputs=[token_count_monitor]
+            fn=refresh_token_count, inputs=[state], outputs=[token_monitor]
         )
 
         file_msg = file_upload_button.upload(
@@ -202,7 +202,7 @@ if __name__ == '__main__':
             inputs=None, outputs=[text_box, restart_button, file_upload_button], queue=False
         ).then(
             fn=refresh_token_count,
-            inputs=[state], outputs=[token_count_monitor]
+            inputs=[state], outputs=[token_monitor]
         )
 
         block.load(fn=initialization, inputs=[state])
