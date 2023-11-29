@@ -10,6 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--notebook", help="Path to the output notebook", default=None, type=str)
 args = parser.parse_args()
 nb = nbf.new_notebook()
+notebook_path = ""
 
 if args.notebook:
     notebook_path = os.path.join(os.getcwd(), args.notebook)
@@ -32,7 +33,6 @@ def desirialize_notebook_into_conv_history():
             append_to_history(history, "```python\n" + cell['source'] + "\n```", cell)
             # Handle outputs
             for output in cell['outputs']:
-                # print(json.dumps(output, indent=1))
                 # Handle display data
                 if output['output_type'] == 'display_data':
                     for mime_type, output_data in output['data'].items():
@@ -50,8 +50,6 @@ def append_to_history(history, obj, cell):
         history.append((obj, None))
     else:
         history.append((None, obj))
-    # print(obj)
-    # print("=========================")
 
 def ansi_to_html(ansi_text):
     converter = ansi2html.Ansi2HTMLConverter()

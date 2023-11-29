@@ -1,6 +1,7 @@
 import jupyter_client
 import re
-
+import os
+from notebook_serializer import notebook_path
 
 def delete_color_control_char(string):
     ansi_escape = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]')
@@ -86,12 +87,18 @@ class JupyterKernel:
         return '\n'.join(text_to_gpt), content_to_display
 
     def _create_work_dir(self):
-        # set work dir in jupyter environment
-        init_code = f"import os\n" \
-                    f"if not os.path.exists('{self.work_dir}'):\n" \
-                    f"    os.mkdir('{self.work_dir}')\n" \
-                    f"os.chdir('{self.work_dir}')\n" \
-                    f"del os"
+        if notebook_path:
+            init_code = f"""
+                import os
+                os.chdir('{self.work_dir}')
+            """
+        else:
+            # set work dir in jupyter environment
+            init_code = f"import os\n" \
+                        f"if not os.path.exists('{self.work_dir}'):\n" \
+                        f"    os.mkdir('{self.work_dir}')\n" \
+                        f"os.chdir('{self.work_dir}')\n" \
+                        f"del os"
         self.execute_code_(init_code)
 
     def restart_jupyter_kernel(self):
