@@ -1,14 +1,41 @@
 from bot_backend import *
 import base64
 import time
+import tiktoken
 from notebook_serializer import add_code_cell_error_to_notebook, add_image_to_notebook, add_code_cell_output_to_notebook
+
+SLICED_CONV_MESSAGE = "[rest of the conversation has been omitted to feet in the context window]"
+
+def get_conversation_slice(conversation, model, min_output_tokens_count=500):
+    """
+    Function to get a slice of the conversation that fits in the model's context window.
+    returns: The conversation with the first message(explaining the role of the assistant) + the last x messages that can fit in the context window.
+    """
+    encoder = tiktoken.encoding_for_model(model)
+    count_tokens = lambda txt: len(encoder.encode(txt))
+    nb_tokens = count_tokens(conversation[0]['content'])
+    sliced_conv = [conversation[0]]
+    context_windw_limit = int(config['model_context_window'][model])
+    max_tokens = context_windw_limit - count_tokens(SLICED_CONV_MESSAGE) - min_output_tokens_count
+    for message in conversation[-1:0:-1]:
+        nb_tokens += count_tokens(message['content'])
+        if nb_tokens > max_tokens:
+            sliced_conv.insert(1, {'role':'system', 'content':SLICED_CONV_MESSAGE})
+            break
+        sliced_conv.insert(1, message)
+    return sliced_conv
 
 def chat_completion(bot_backend: BotBackend):
     model_choice = bot_backend.gpt_model_choice
     config = bot_backend.config
-    kwargs_for_chat_completion = bot_backend.kwargs_for_chat_completion
+    model_name = config['model'][model_choice]['model_name']
+    kwargs_for_chat_completion = copy.deepcopy(bot_backend.kwargs_for_chat_completion)
+    kwargs_for_chat_completion['messages'] = get_conversation_slice(kwargs_for_chat_completion['messages'], model_name)
 
     assert config['model'][model_choice]['available'], f"{model_choice} is not available for your API key"
+
+    assert model_name in config['model_context_window'], \
+        f"{model_name} lacks context window information. Please check the config.json file."
 
     response = openai.ChatCompletion.create(**kwargs_for_chat_completion)
     return response
