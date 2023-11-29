@@ -1,5 +1,6 @@
-from response_parser import *
 import gradio as gr
+
+from response_parser import *
 
 
 def initialization(state_dict: Dict) -> None:
@@ -73,6 +74,19 @@ def refresh_file_display(state_dict: Dict) -> List[str]:
     return paths
 
 
+def refresh_token_count(state_dict: Dict):
+    bot_backend = get_bot_backend(state_dict)
+    model_choice = bot_backend.gpt_model_choice
+    sliced = bot_backend.sliced
+    token_count = bot_backend.context_window_tokens
+    display_text = f'''**Token count**: {token_count} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        **Maximum token limit**: {config['model_context_window'][config['model'][model_choice]['model_name']]}
+    '''
+    if sliced:
+        display_text += '\\\nToken limit exceeded, conversion has been sliced.'
+    return gr.Markdown.update(value=display_text)
+
+
 def restart_ui(history: List) -> Tuple[List, Dict, Dict, Dict, Dict]:
     history.clear()
     return (
@@ -134,9 +148,13 @@ if __name__ == '__main__':
                 with gr.Column(scale=0.15, min_width=0):
                     file_upload_button = gr.UploadButton("📁", file_types=['file'])
             with gr.Row(equal_height=True):
-                with gr.Column(scale=0.7):
+                with gr.Column(scale=0.08, min_width=0):
                     check_box = gr.Checkbox(label="Use GPT-4", interactive=config['model']['GPT-4']['available'])
-                    check_box.change(fn=switch_to_gpt4, inputs=[state, check_box])
+                with gr.Column(scale=0.617, min_width=0):
+                    token_count_display_text = f'''**Token count**: 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        **Maximum token limit**: {config['model_context_window'][config['model']['GPT-3.5']['model_name']]}
+                    '''
+                    token_monitor = gr.Markdown(value=token_count_display_text)
                 with gr.Column(scale=0.15, min_width=0):
                     restart_button = gr.Button(value='🔄 Restart')
                 with gr.Column(scale=0.15, min_width=0):
@@ -151,6 +169,11 @@ if __name__ == '__main__':
         txt_msg.then(fn=refresh_file_display, inputs=[state], outputs=[file_output])
         txt_msg.then(lambda: gr.update(interactive=True), None, [text_box], queue=False)
         txt_msg.then(lambda: gr.Button.update(interactive=False), None, [undo_file_button], queue=False)
+        txt_msg.then(fn=refresh_token_count, inputs=[state], outputs=[token_monitor])
+
+        check_box.change(fn=switch_to_gpt4, inputs=[state, check_box]).then(
+            fn=refresh_token_count, inputs=[state], outputs=[token_monitor]
+        )
 
         file_msg = file_upload_button.upload(
             add_file, [state, chatbot, file_upload_button], [chatbot], queue=False
@@ -177,6 +200,9 @@ if __name__ == '__main__':
             fn=lambda: (gr.Textbox.update(interactive=True), gr.Button.update(interactive=True),
                         gr.Button.update(interactive=True)),
             inputs=None, outputs=[text_box, restart_button, file_upload_button], queue=False
+        ).then(
+            fn=refresh_token_count,
+            inputs=[state], outputs=[token_monitor]
         )
 
         block.load(fn=initialization, inputs=[state])

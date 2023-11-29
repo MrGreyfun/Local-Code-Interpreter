@@ -125,6 +125,8 @@ class BotBackend(GPTResponseLog):
 
     def _init_conversation(self):
         first_system_msg = {'role': 'system', 'content': system_msg}
+        self.context_window_tokens = 0  # num of tokens actually sent to GPT
+        self.sliced = False  # whether the conversion is sliced
         if hasattr(self, 'conversation'):
             self.conversation.clear()
             self.conversation.append(first_system_msg)
@@ -173,8 +175,6 @@ class BotBackend(GPTResponseLog):
         self.revocable_files.clear()
         self.update_finish_reason(finish_reason='new_input')
         add_markdown_to_notebook(user_text, title="User")
-
-        
 
     def add_file_message(self, path, bot_msg):
         filename = os.path.basename(path)
@@ -234,6 +234,12 @@ class BotBackend(GPTResponseLog):
     def update_gpt_model_choice(self, model_choice):
         self.gpt_model_choice = model_choice
         self._init_kwargs_for_chat_completion()
+
+    def update_token_count(self, num_tokens):
+        self.__setattr__('context_window_tokens', num_tokens)
+
+    def update_sliced_state(self, sliced):
+        self.__setattr__('sliced', sliced)
 
     def restart(self):
         self._clear_all_files_in_work_dir()

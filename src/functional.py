@@ -4,33 +4,40 @@ import time
 import tiktoken
 from notebook_serializer import add_code_cell_error_to_notebook, add_image_to_notebook, add_code_cell_output_to_notebook
 
-SLICED_CONV_MESSAGE = "[rest of the conversation has been omitted to feet in the context window]"
+SLICED_CONV_MESSAGE = "[Rest of the conversation has been omitted to fit in the context window]"
+
 
 def get_conversation_slice(conversation, model, min_output_tokens_count=500):
     """
-    Function to get a slice of the conversation that fits in the model's context window.
-    returns: The conversation with the first message(explaining the role of the assistant) + the last x messages that can fit in the context window.
+    Function to get a slice of the conversation that fits in the model's context window. returns: The conversation
+    with the first message(explaining the role of the assistant) + the last x messages that can fit in the context
+    window.
     """
     encoder = tiktoken.encoding_for_model(model)
     count_tokens = lambda txt: len(encoder.encode(txt))
     nb_tokens = count_tokens(conversation[0]['content'])
     sliced_conv = [conversation[0]]
-    context_windw_limit = int(config['model_context_window'][model])
-    max_tokens = context_windw_limit - count_tokens(SLICED_CONV_MESSAGE) - min_output_tokens_count
+    context_window_limit = int(config['model_context_window'][model])
+    max_tokens = context_window_limit - count_tokens(SLICED_CONV_MESSAGE) - min_output_tokens_count
+    sliced = False
     for message in conversation[-1:0:-1]:
         nb_tokens += count_tokens(message['content'])
         if nb_tokens > max_tokens:
-            sliced_conv.insert(1, {'role':'system', 'content':SLICED_CONV_MESSAGE})
+            sliced_conv.insert(1, {'role': 'system', 'content': SLICED_CONV_MESSAGE})
+            sliced = True
             break
         sliced_conv.insert(1, message)
-    return sliced_conv
+    return sliced_conv, nb_tokens, sliced
+
 
 def chat_completion(bot_backend: BotBackend):
     model_choice = bot_backend.gpt_model_choice
-    config = bot_backend.config
-    model_name = config['model'][model_choice]['model_name']
+    model_name = bot_backend.config['model'][model_choice]['model_name']
     kwargs_for_chat_completion = copy.deepcopy(bot_backend.kwargs_for_chat_completion)
-    kwargs_for_chat_completion['messages'] = get_conversation_slice(kwargs_for_chat_completion['messages'], model_name)
+    kwargs_for_chat_completion['messages'], nb_tokens, sliced = \
+        get_conversation_slice(kwargs_for_chat_completion['messages'], model_name)
+    bot_backend.update_token_count(num_tokens=nb_tokens)
+    bot_backend.update_sliced_state(sliced=sliced)
 
     assert config['model'][model_choice]['available'], f"{model_choice} is not available for your API key"
 
@@ -43,7 +50,6 @@ def chat_completion(bot_backend: BotBackend):
 
 def add_function_response_to_bot_history(content_to_display, history, unique_id):
     images, text = [], []
-
 
     # terminal output
     error_occurred = False
@@ -148,4 +154,3 @@ def parse_json(function_args: str, finished: bool):
 
     except Exception as e:
         return None
-    
