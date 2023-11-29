@@ -5,7 +5,8 @@ import copy
 import shutil
 from jupyter_backend import *
 from typing import *
-from notebook_serializer import add_markdown_to_notebook, add_code_cell_to_notebook
+from notebook_serializer import add_markdown_to_notebook, add_code_cell_to_notebook, nb
+from bs4 import BeautifulSoup
 
 functions = [
     {
@@ -123,6 +124,78 @@ class BotBackend(GPTResponseLog):
         self._init_api_config()
         self._init_kwargs_for_chat_completion()
 
+        for cell in nb['cells']:
+            print("======================", cell['cell_type'])
+            if cell['cell_type'] == 'code':
+                print("=========")
+                print(cell['source'])
+                _, _ = self.jupyter_kernel.execute_code(cell['source'])
+                self.conversation.append(
+                    {'role': "function", 'name': "python", 'content': cell['source']}
+                )
+
+                for output in cell['outputs']:
+                    if output['output_type'] == 'display_data':
+                        for mime_type, output_data in output['data'].items():
+                            if 'text' in mime_type:
+                                if mime_type == 'text/html':
+                                    soup = BeautifulSoup(output_data, 'html.parser')
+                                    text_output = soup.get_text().strip()
+                                else:
+                                    text_output = output_data
+                                print("=========output data")
+                                print(text_output)
+                                self.conversation.append(
+                                    {
+                                        "role": "function",
+                                        'name': "python",
+                                        "content": text_output,
+                                    }
+                                )
+                            if 'image' in mime_type:
+                                print("=========image")
+                                self.conversation.append(
+                                    {
+                                        "role": "function",
+                                        'name': "python",
+                                        "content": "[image]",
+                                    }
+                                )
+                    if output['output_type'] == 'error':
+                        for tracebak in output['traceback']:
+                                print("=========traceback")
+                                print(text_output)
+                                self.conversation.append(
+                                    {
+                                        "role": "function",
+                                        "name": "tracebak",
+                                        "content": tracebak,
+                                    }
+                                )
+
+            if cell['cell_type'] == 'markdown':
+                source = cell['source']
+                print(source)
+                if source.startswith("##### User:\n"):
+                    stripped_source = source[len("#####User:\n")+1:]
+                    self.conversation.append(
+                        {'role': "user", 'content': stripped_source}
+                    )
+                    print("=========user")
+                    print(stripped_source)
+                if source.startswith("##### Assistant:\n"):
+                    stripped_source = source[len("#####Assistant:\n")+1:]
+                    self.conversation.append(
+                        {'role': 'assistant', 'content': stripped_source}
+                    )
+                    print("=========assistant")
+                    print(stripped_source)
+                
+        print("=========================bot conversation")
+        print(json.dumps(self.conversation, indent=1))
+
+                
+
     def _init_conversation(self):
         first_system_msg = {'role': 'system', 'content': system_msg}
         self.context_window_tokens = 0  # num of tokens actually sent to GPT
@@ -175,6 +248,7 @@ class BotBackend(GPTResponseLog):
         self.revocable_files.clear()
         self.update_finish_reason(finish_reason='new_input')
         add_markdown_to_notebook(user_text, title="User")
+        
 
     def add_file_message(self, path, bot_msg):
         filename = os.path.basename(path)

@@ -129,7 +129,6 @@ class FinishReasonChoiceStrategy(ChoiceStrategy):
                     bot_backend.function_name
                 ](code_str)
 
-                # add function call to conversion
                 bot_backend.add_function_call_response_message(function_response=text_to_gpt, save_tokens=True)
 
                 add_function_response_to_bot_history(
