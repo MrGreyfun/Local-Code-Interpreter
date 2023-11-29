@@ -1,4 +1,5 @@
 import gradio as gr
+from notebook_serializer import desirialize_notebook_into_conv_history
 
 from response_parser import *
 
@@ -137,7 +138,8 @@ if __name__ == '__main__':
         # UI components
         state = gr.State(value={"bot_backend": None})
         with gr.Tab("Chat"):
-            chatbot = gr.Chatbot([], elem_id="chatbot", label="Local Code Interpreter", height=750)
+            history = desirialize_notebook_into_conv_history()
+            chatbot = gr.Chatbot(history, elem_id="chatbot", label="Local Code Interpreter", height=750)
             with gr.Row():
                 with gr.Column(scale=0.85):
                     text_box = gr.Textbox(

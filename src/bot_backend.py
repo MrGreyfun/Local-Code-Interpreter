@@ -5,7 +5,9 @@ import copy
 import shutil
 from jupyter_backend import *
 from typing import *
-from notebook_serializer import add_markdown_to_notebook, add_code_cell_to_notebook
+from notebook_serializer import add_markdown_to_notebook, add_code_cell_to_notebook, nb
+from notebook_serializer import notebook_path
+from bs4 import BeautifulSoup
 
 functions = [
     {
@@ -115,13 +117,73 @@ class BotBackend(GPTResponseLog):
     def __init__(self):
         super().__init__()
         self.unique_id = hash(id(self))
-        self.jupyter_work_dir = f'cache/work_dir_{self.unique_id}'
+        if notebook_path:
+            self.jupyter_work_dir = os.path.dirname(notebook_path)
+        else:
+            self.jupyter_work_dir = f'cache/work_dir_{self.unique_id}'
         self.jupyter_kernel = JupyterKernel(work_dir=self.jupyter_work_dir)
         self.gpt_model_choice = "GPT-3.5"
         self.revocable_files = []
         self._init_conversation()
         self._init_api_config()
         self._init_kwargs_for_chat_completion()
+
+        for cell in nb['cells']:
+            if cell['cell_type'] == 'code':
+                _, _ = self.jupyter_kernel.execute_code(cell['source'])
+                self.conversation.append(
+                    {'role': "function", 'name': "python", 'content': cell['source']}
+                )
+
+                for output in cell['outputs']:
+                    if output['output_type'] == 'display_data':
+                        for mime_type, output_data in output['data'].items():
+                            if 'text' in mime_type:
+                                if mime_type == 'text/html':
+                                    soup = BeautifulSoup(output_data, 'html.parser')
+                                    text_output = soup.get_text().strip()
+                                else:
+                                    text_output = output_data
+                                self.conversation.append(
+                                    {
+                                        "role": "function",
+                                        'name': "python",
+                                        "content": text_output,
+                                    }
+                                )
+                            if 'image' in mime_type:
+                                self.conversation.append(
+                                    {
+                                        "role": "function",
+                                        'name': "python",
+                                        "content": "[image]",
+                                    }
+                                )
+                    if output['output_type'] == 'error':
+                        for tracebak in output['traceback']:
+                                self.conversation.append(
+                                    {
+                                        "role": "function",
+                                        "name": "tracebak",
+                                        "content": tracebak,
+                                    }
+                                )
+
+            if cell['cell_type'] == 'markdown':
+                source = cell['source']
+                if source.startswith("##### User:\n"):
+                    stripped_source = source[len("#####User:\n")+1:]
+                    self.conversation.append(
+                        {'role': "user", 'content': stripped_source}
+                    )
+                if source.startswith("##### Assistant:\n"):
+                    stripped_source = source[len("#####Assistant:\n")+1:]
+                    self.conversation.append(
+                        {'role': 'assistant', 'content': stripped_source}
+                    )
+
+        print("conversation:", json.dumps(self.conversation, indent=1))
+                
 
     def _init_conversation(self):
         first_system_msg = {'role': 'system', 'content': system_msg}
@@ -175,6 +237,7 @@ class BotBackend(GPTResponseLog):
         self.revocable_files.clear()
         self.update_finish_reason(finish_reason='new_input')
         add_markdown_to_notebook(user_text, title="User")
+        
 
     def add_file_message(self, path, bot_msg):
         filename = os.path.basename(path)
