@@ -7,13 +7,13 @@ from notebook_serializer import add_code_cell_error_to_notebook, add_image_to_no
 SLICED_CONV_MESSAGE = "[Rest of the conversation has been omitted to fit in the context window]"
 
 
-def get_conversation_slice(conversation, model, min_output_tokens_count=500):
+def get_conversation_slice(conversation, model, encoding_for_which_model, min_output_tokens_count=500):
     """
     Function to get a slice of the conversation that fits in the model's context window. returns: The conversation
     with the first message(explaining the role of the assistant) + the last x messages that can fit in the context
     window.
     """
-    encoder = tiktoken.encoding_for_model(model)
+    encoder = tiktoken.encoding_for_model(encoding_for_which_model)
     count_tokens = lambda txt: len(encoder.encode(txt))
     nb_tokens = count_tokens(conversation[0]['content'])
     sliced_conv = [conversation[0]]
@@ -34,8 +34,21 @@ def chat_completion(bot_backend: BotBackend):
     model_choice = bot_backend.gpt_model_choice
     model_name = bot_backend.config['model'][model_choice]['model_name']
     kwargs_for_chat_completion = copy.deepcopy(bot_backend.kwargs_for_chat_completion)
-    kwargs_for_chat_completion['messages'], nb_tokens, sliced = \
-        get_conversation_slice(kwargs_for_chat_completion['messages'], model_name)
+    if bot_backend.config['API_TYPE'] == "azure":
+        kwargs_for_chat_completion['messages'], nb_tokens, sliced = \
+            get_conversation_slice(
+                conversation=kwargs_for_chat_completion['messages'],
+                model=model_name,
+                encoding_for_which_model='gpt-3.5-turbo' if model_choice == 'GPT-3.5' else 'gpt-4'
+            )
+    else:
+        kwargs_for_chat_completion['messages'], nb_tokens, sliced = \
+            get_conversation_slice(
+                conversation=kwargs_for_chat_completion['messages'],
+                model=model_name,
+                encoding_for_which_model=model_name
+            )
+
     bot_backend.update_token_count(num_tokens=nb_tokens)
     bot_backend.update_sliced_state(sliced=sliced)
 
