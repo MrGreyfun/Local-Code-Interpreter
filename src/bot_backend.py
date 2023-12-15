@@ -1,9 +1,9 @@
 import json
-import openai
 import os
 import copy
 import shutil
 from jupyter_backend import *
+from tools import *
 from typing import *
 from notebook_serializer import add_markdown_to_notebook, add_code_cell_to_notebook
 
@@ -24,7 +24,7 @@ functions = [
             },
             "required": ["code"],
         }
-    }
+    },
 ]
 
 system_msg = '''You are an AI code interpreter.
@@ -137,6 +137,7 @@ class BotBackend(GPTResponseLog):
         self.revocable_files = []
         self._init_conversation()
         self._init_api_config()
+        self._init_tools()
         self._init_kwargs_for_chat_completion()
 
     def _init_conversation(self):
@@ -156,6 +157,24 @@ class BotBackend(GPTResponseLog):
         api_version = self.config['API_VERSION']
         api_key = config['API_KEY']
         config_openai_api(api_type, api_base, api_version, api_key)
+
+    def _init_tools(self):
+        global system_msg, functions
+        self.additional_tools = {}
+
+        tools = get_available_tools(self.config)
+        if tools:
+            system_msg += '\n\nAdditional tools:'
+
+        for tool in tools:
+            system_prompt = tool['system_prompt']
+            tool_name = tool['tool_name']
+            tool_description = tool['tool_description']
+
+            system_msg += f'\n{tool_name}: {system_prompt}'
+
+            functions.append(tool_description)
+            self.additional_tools[tool_name] = tool['tool']
 
     def _init_kwargs_for_chat_completion(self):
         self.kwargs_for_chat_completion = {
