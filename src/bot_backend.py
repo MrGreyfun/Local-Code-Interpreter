@@ -158,9 +158,11 @@ class BotBackend(GPTResponseLog):
 
     def _clear_all_files_in_work_dir(self):
         for filename in os.listdir(self.jupyter_work_dir):
-            os.remove(
-                os.path.join(self.jupyter_work_dir, filename)
-            )
+            path = os.path.join(self.jupyter_work_dir, filename)
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
 
     def add_gpt_response_content_message(self):
         self.conversation.append(
