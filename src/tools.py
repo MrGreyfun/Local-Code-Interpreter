@@ -3,7 +3,7 @@ import base64
 from abc import ABCMeta, abstractmethod
 
 
-def create_chat_completion(base64_image, prompt):
+def create_vision_chat_completion(base64_image, prompt):
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4-vision-preview",
@@ -43,7 +43,7 @@ def inquire_image(workdir, path, prompt):
     if image_base64 is None:
         return "Error: Image transform error"
     else:
-        response = create_chat_completion(image_base64, prompt)
+        response = create_vision_chat_completion(image_base64, prompt)
         if response is None:
             return "Model response error"
         else:
