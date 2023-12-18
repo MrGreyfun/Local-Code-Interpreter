@@ -135,6 +135,9 @@ class FinishReasonChoiceStrategy(ChoiceStrategy):
                 # add function call to conversion
                 bot_backend.add_function_call_response_message(function_response=text_to_gpt, save_tokens=True)
 
+                if bot_backend.interrupt_signal_sent:
+                    bot_backend.append_system_msg(prompt='Code execution is manually stopped by user, no need to fix.')
+
                 add_function_response_to_bot_history(
                     content_to_display=content_to_display, history=history, unique_id=bot_backend.unique_id
                 )

@@ -70,6 +70,7 @@ class GPTResponseLog:
         self.bot_history = None
         self.stop_generating = False
         self.code_executing = False
+        self.interrupt_signal_sent = False
 
     def reset_gpt_response_log_values(self, exclude=None):
         if exclude is None:
@@ -84,7 +85,8 @@ class GPTResponseLog:
                       'finish_reason': 'stop',
                       'bot_history': None,
                       'stop_generating': False,
-                      'code_executing': False}
+                      'code_executing': False,
+                      'interrupt_signal_sent': False}
 
         for attr_name in exclude:
             del attributes[attr_name]
@@ -120,6 +122,9 @@ class GPTResponseLog:
 
     def update_code_executing_state(self, code_executing: bool):
         self.code_executing = code_executing
+
+    def update_interrupt_signal_sent(self, interrupt_signal_sent: bool):
+        self.interrupt_signal_sent = interrupt_signal_sent
 
 
 class BotBackend(GPTResponseLog):
@@ -227,6 +232,11 @@ class BotBackend(GPTResponseLog):
                 }
             )
 
+    def append_system_msg(self, prompt):
+        self.conversation.append(
+            {'role': 'system', 'content': prompt}
+        )
+
     def revoke_file(self):
         if self.revocable_files:
             file = self.revocable_files[-1]
@@ -254,6 +264,10 @@ class BotBackend(GPTResponseLog):
 
     def update_sliced_state(self, sliced):
         self.__setattr__('sliced', sliced)
+
+    def send_interrupt_signal(self):
+        self.jupyter_kernel.send_interrupt_signal()
+        self.update_interrupt_signal_sent(interrupt_signal_sent=True)
 
     def restart(self):
         self._clear_all_files_in_work_dir()

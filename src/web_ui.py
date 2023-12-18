@@ -105,7 +105,7 @@ def restart_bot_backend(state_dict: Dict) -> None:
 def stop_generating(state_dict: Dict) -> None:
     bot_backend = get_bot_backend(state_dict)
     if bot_backend.code_executing:
-        bot_backend.jupyter_kernel.send_interrupt_signal()
+        bot_backend.send_interrupt_signal()
     else:
         bot_backend.update_stop_generating_state(stop_generating=True)
 
