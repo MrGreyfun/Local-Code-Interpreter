@@ -67,6 +67,8 @@ class GPTResponseLog:
         self.display_code_block = ''
         self.finish_reason = 'stop'
         self.bot_history = None
+        self.stop_generating = False
+        self.code_executing = False
 
     def reset_gpt_response_log_values(self, exclude=None):
         if exclude is None:
@@ -79,7 +81,9 @@ class GPTResponseLog:
                       'code_str': '',
                       'display_code_block': '',
                       'finish_reason': 'stop',
-                      'bot_history': None}
+                      'bot_history': None,
+                      'stop_generating': False,
+                      'code_executing': False}
 
         for attr_name in exclude:
             del attributes[attr_name]
@@ -109,6 +113,12 @@ class GPTResponseLog:
 
     def update_finish_reason(self, finish_reason: str):
         self.finish_reason = finish_reason
+
+    def update_stop_generating_state(self, stop_generating: bool):
+        self.stop_generating = stop_generating
+
+    def update_code_executing_state(self, code_executing: bool):
+        self.code_executing = code_executing
 
 
 class BotBackend(GPTResponseLog):
@@ -194,7 +204,7 @@ class BotBackend(GPTResponseLog):
             }
         )
 
-    def add_function_call_response_message(self, function_response: str, save_tokens=True):
+    def add_function_call_response_message(self, function_response: Union[str, None], save_tokens=True):
         add_code_cell_to_notebook(self.code_str)
 
         self.conversation.append(
@@ -204,16 +214,17 @@ class BotBackend(GPTResponseLog):
                 "content": self.function_args_str
             }
         )
-        if save_tokens and len(function_response) > 500:
-            function_response = f'{function_response[:200]}\n[Output too much, the middle part output is omitted]\n ' \
-                                f'End part of output:\n{function_response[-200:]}'
-        self.conversation.append(
-            {
-                "role": "function",
-                "name": self.function_name,
-                "content": function_response,
-            }
-        )
+        if function_response is not None:
+            if save_tokens and len(function_response) > 500:
+                function_response = f'{function_response[:200]}\n[Output too much, the middle part output is omitted]\n ' \
+                                    f'End part of output:\n{function_response[-200:]}'
+            self.conversation.append(
+                {
+                    "role": "function",
+                    "name": self.function_name,
+                    "content": function_response,
+                }
+            )
 
     def revoke_file(self):
         if self.revocable_files:

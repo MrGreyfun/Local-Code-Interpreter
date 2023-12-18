@@ -11,6 +11,7 @@ class JupyterKernel:
     def __init__(self, work_dir):
         self.kernel_manager, self.kernel_client = jupyter_client.manager.start_new_kernel(kernel_name='python3')
         self.work_dir = work_dir
+        self.interrupt_signal = False
         self._create_work_dir()
         self.available_functions = {
             'execute_code': self.execute_code,
@@ -21,15 +22,25 @@ class JupyterKernel:
         msg_id = self.kernel_client.execute(code)
 
         # Get the output of the code
-        iopub_msg = self.kernel_client.get_iopub_msg()
+        msg_list = []
+        while True:
+            try:
+                iopub_msg = self.kernel_client.get_iopub_msg(timeout=1)
+                msg_list.append(iopub_msg)
+                if iopub_msg['msg_type'] == 'status' and iopub_msg['content'].get('execution_state') == 'idle':
+                    break
+            except:
+                if self.interrupt_signal:
+                    self.kernel_manager.interrupt_kernel()
+                    self.interrupt_signal = False
+                continue
 
         all_output = []
-        while True:
+        for iopub_msg in msg_list:
             if iopub_msg['msg_type'] == 'stream':
                 if iopub_msg['content'].get('name') == 'stdout':
                     output = iopub_msg['content']['text']
                     all_output.append(('stdout', output))
-                iopub_msg = self.kernel_client.get_iopub_msg()
             elif iopub_msg['msg_type'] == 'execute_result':
                 if 'data' in iopub_msg['content']:
                     if 'text/plain' in iopub_msg['content']['data']:
@@ -44,7 +55,6 @@ class JupyterKernel:
                     if 'image/jpeg' in iopub_msg['content']['data']:
                         output = iopub_msg['content']['data']['image/jpeg']
                         all_output.append(('execute_result_jpeg', output))
-                iopub_msg = self.kernel_client.get_iopub_msg()
             elif iopub_msg['msg_type'] == 'display_data':
                 if 'data' in iopub_msg['content']:
                     if 'text/plain' in iopub_msg['content']['data']:
@@ -59,16 +69,10 @@ class JupyterKernel:
                     if 'image/jpeg' in iopub_msg['content']['data']:
                         output = iopub_msg['content']['data']['image/jpeg']
                         all_output.append(('display_jpeg', output))
-                iopub_msg = self.kernel_client.get_iopub_msg()
             elif iopub_msg['msg_type'] == 'error':
                 if 'traceback' in iopub_msg['content']:
                     output = '\n'.join(iopub_msg['content']['traceback'])
                     all_output.append(('error', output))
-                iopub_msg = self.kernel_client.get_iopub_msg()
-            elif iopub_msg['msg_type'] == 'status' and iopub_msg['content'].get('execution_state') == 'idle':
-                break
-            else:
-                iopub_msg = self.kernel_client.get_iopub_msg()
 
         return all_output
 
@@ -94,7 +98,11 @@ class JupyterKernel:
                     f"del os"
         self.execute_code_(init_code)
 
+    def send_interrupt_signal(self):
+        self.interrupt_signal = True
+
     def restart_jupyter_kernel(self):
         self.kernel_client.shutdown()
         self.kernel_manager, self.kernel_client = jupyter_client.manager.start_new_kernel(kernel_name='python3')
+        self.interrupt_signal = False
         self._create_work_dir()
