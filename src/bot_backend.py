@@ -172,7 +172,13 @@ class BotBackend(GPTResponseLog):
         else:
             self.kwargs_for_chat_completion['model'] = model_name
 
-    def _clear_all_files_in_work_dir(self):
+    def _backup_all_files_in_work_dir(self):
+        backup_dir = f'cache/backup_{self.unique_id}'
+        shutil.copytree(src=self.jupyter_work_dir, dst=backup_dir)
+
+    def _clear_all_files_in_work_dir(self, backup=True):
+        if backup:
+            self._backup_all_files_in_work_dir()
         for filename in os.listdir(self.jupyter_work_dir):
             path = os.path.join(self.jupyter_work_dir, filename)
             if os.path.isdir(path):
