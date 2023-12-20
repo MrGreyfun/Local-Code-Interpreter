@@ -61,10 +61,9 @@ Please Note:
     - `gpt-3.5-turbo-0613` (and its 16K version)
     - `gpt-3.5-turbo-1106`
     - `gpt-4-0613` (and its 32K version)
-    - `gpt-4-1106-preview` (not tested yet)
-    - `gpt-4-vision-preview` (not tested yet, vision input temporarily not supported)
+    - `gpt-4-1106-preview` 
 
-    Older versions of the models will not work. 
+    Older versions of the models will not work. Note that `gpt-4-vision-preview` lacks support function calling and is therefore not compatible with this program. 
 
     For Azure OpenAI service users:
     - Set the `model_name` as your deployment name.

@@ -61,10 +61,9 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
     - `gpt-3.5-turbo-0613` (及其16K版本)
     - `gpt-3.5-turbo-1106`
     - `gpt-4-0613` (及其32K版本)
-    - `gpt-4-1106-preview` (未测试)
-    - `gpt-4-vision-preview` (未测试, 暂不支持图像输入)
+    - `gpt-4-1106-preview` 
 
-   旧版本的模型将无法使用。
+   旧版本的模型将无法使用。请注意，`gpt-4-vision-preview`模型同样不支持函数调用，因此本程序无法使用。
 
    对于使用Azure OpenAI的用户：
    - 请将`model_name`设置为您的模型的部署名（deployment name）。
