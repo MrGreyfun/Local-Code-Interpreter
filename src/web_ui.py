@@ -123,7 +123,7 @@ def bot(state_dict: Dict, history: List) -> List:
 
         response = chat_completion(bot_backend=bot_backend)
         for chunk in response:
-            if chunk['choices'][0]['finish_reason'] == 'function_call':
+            if chunk['choices'] and chunk['choices'][0]['finish_reason'] == 'function_call':
                 yield history, gr.Button.update(value='⏹️ Interrupt executing')
 
             if bot_backend.stop_generating:
