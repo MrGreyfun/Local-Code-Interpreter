@@ -1,5 +1,4 @@
 import gradio as gr
-
 from response_parser import *
 
 
@@ -79,19 +78,19 @@ def refresh_token_count(state_dict: Dict):
     model_choice = bot_backend.gpt_model_choice
     sliced = bot_backend.sliced
     token_count = bot_backend.context_window_tokens
-    display_text = f'''**Token count**: {token_count} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        **Maximum token limit**: {config['model_context_window'][config['model'][model_choice]['model_name']]}
-    '''
+    token_limit = config['model_context_window'][config['model'][model_choice]['model_name']]
+    display_text = f"**Context token:** {token_count}/{token_limit}"
     if sliced:
         display_text += '\\\nToken limit exceeded, conversion has been sliced.'
     return gr.Markdown.update(value=display_text)
 
 
-def restart_ui(history: List) -> Tuple[List, Dict, Dict, Dict, Dict]:
+def restart_ui(history: List) -> Tuple[List, Dict, Dict, Dict, Dict, Dict]:
     history.clear()
     return (
         history,
         gr.Textbox.update(value="", interactive=False),
+        gr.Button.update(interactive=False),
         gr.Button.update(interactive=False),
         gr.Button.update(interactive=False),
         gr.Button.update(interactive=False)
@@ -101,6 +100,14 @@ def restart_ui(history: List) -> Tuple[List, Dict, Dict, Dict, Dict]:
 def restart_bot_backend(state_dict: Dict) -> None:
     bot_backend = get_bot_backend(state_dict)
     bot_backend.restart()
+
+
+def stop_generating(state_dict: Dict) -> None:
+    bot_backend = get_bot_backend(state_dict)
+    if bot_backend.code_executing:
+        bot_backend.send_interrupt_signal()
+    else:
+        bot_backend.update_stop_generating_state(stop_generating=True)
 
 
 def bot(state_dict: Dict, history: List) -> List:
@@ -116,16 +123,38 @@ def bot(state_dict: Dict, history: List) -> List:
 
         response = chat_completion(bot_backend=bot_backend)
         for chunk in response:
+            if chunk['choices'] and chunk['choices'][0]['finish_reason'] == 'function_call':
+                yield history, gr.Button.update(value='⏹️ Interrupt executing')
+
+            if bot_backend.stop_generating:
+                response.close()
+                if bot_backend.content:
+                    bot_backend.add_gpt_response_content_message()
+                if bot_backend.display_code_block:
+                    bot_backend.update_display_code_block(
+                        display_code_block="\n⚫Stopped:\n```python\n{}\n```".format(bot_backend.code_str)
+                    )
+                    history = copy.deepcopy(bot_backend.bot_history)
+                    history[-1][1] += bot_backend.display_code_block
+                    bot_backend.add_function_call_response_message(function_response=None)
+
+                bot_backend.reset_gpt_response_log_values()
+                break
+
             history, weather_exit = parse_response(
                 chunk=chunk,
                 history=history,
                 bot_backend=bot_backend
             )
-            yield history
+
+            yield history, gr.Button.update(
+                interactive=False if bot_backend.stop_generating else True,
+                value='⏹️ Stop generating'
+            )
             if weather_exit:
                 exit(-1)
 
-    yield history
+    yield history, gr.Button.update(interactive=False, value='⏹️ Stop generating')
 
 
 if __name__ == '__main__':
@@ -150,11 +179,12 @@ if __name__ == '__main__':
             with gr.Row(equal_height=True):
                 with gr.Column(scale=0.08, min_width=0):
                     check_box = gr.Checkbox(label="Use GPT-4", interactive=config['model']['GPT-4']['available'])
-                with gr.Column(scale=0.617, min_width=0):
-                    token_count_display_text = f'''**Token count**: 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                        **Maximum token limit**: {config['model_context_window'][config['model']['GPT-3.5']['model_name']]}
-                    '''
+                with gr.Column(scale=0.467, min_width=0):
+                    model_token_limit = config['model_context_window'][config['model']['GPT-3.5']['model_name']]
+                    token_count_display_text = f"**Context token:** 0/{model_token_limit}"
                     token_monitor = gr.Markdown(value=token_count_display_text)
+                with gr.Column(scale=0.15, min_width=0):
+                    stop_generation_button = gr.Button(value='⏹️ Stop generating', interactive=False)
                 with gr.Column(scale=0.15, min_width=0):
                     restart_button = gr.Button(value='🔄 Restart')
                 with gr.Column(scale=0.15, min_width=0):
@@ -164,7 +194,7 @@ if __name__ == '__main__':
 
         # Components function binding
         txt_msg = text_box.submit(add_text, [state, chatbot, text_box], [chatbot, text_box], queue=False).then(
-            bot, [state, chatbot], chatbot
+            bot, [state, chatbot], [chatbot, stop_generation_button]
         )
         txt_msg.then(fn=refresh_file_display, inputs=[state], outputs=[file_output])
         txt_msg.then(lambda: gr.update(interactive=True), None, [text_box], queue=False)
@@ -177,8 +207,6 @@ if __name__ == '__main__':
 
         file_msg = file_upload_button.upload(
             add_file, [state, chatbot, file_upload_button], [chatbot], queue=False
-        ).then(
-            bot, [state, chatbot], chatbot
         )
         file_msg.then(lambda: gr.Button.update(interactive=True), None, [undo_file_button], queue=False)
         file_msg.then(fn=refresh_file_display, inputs=[state], outputs=[file_output])
@@ -189,9 +217,13 @@ if __name__ == '__main__':
             fn=refresh_file_display, inputs=[state], outputs=[file_output]
         )
 
+        stop_generation_button.click(fn=stop_generating, inputs=[state], queue=False).then(
+            fn=lambda: gr.Button.update(interactive=False), inputs=None, outputs=[stop_generation_button], queue=False
+        )
+
         restart_button.click(
             fn=restart_ui, inputs=[chatbot],
-            outputs=[chatbot, text_box, restart_button, file_upload_button, undo_file_button]
+            outputs=[chatbot, text_box, restart_button, file_upload_button, undo_file_button, stop_generation_button]
         ).then(
             fn=restart_bot_backend, inputs=[state], queue=False
         ).then(
