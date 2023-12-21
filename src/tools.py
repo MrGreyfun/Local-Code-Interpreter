@@ -41,11 +41,11 @@ def inquire_image(workdir, path, prompt):
     image_base64 = image_to_base64(f'{workdir}/{path}')
     hypertext_to_display = None
     if image_base64 is None:
-        return "Error: Image transform error"
+        return "Error: Image transform error", None
     else:
         response = create_vision_chat_completion(image_base64, prompt)
         if response is None:
-            return "Model response error"
+            return "Model response error", None
         else:
             return response, hypertext_to_display
 

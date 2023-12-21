@@ -118,17 +118,18 @@ def bot(state_dict: Dict, history: List) -> List:
     bot_backend = get_bot_backend(state_dict)
 
     while bot_backend.finish_reason in ('new_input', 'function_call'):
-        if history[-1][0] is None:
-            history.append(
-                [None, ""]
-            )
+        if history[-1][1]:
+            history.append([None, ""])
         else:
             history[-1][1] = ""
 
         response = chat_completion(bot_backend=bot_backend)
         for chunk in response:
             if chunk['choices'] and chunk['choices'][0]['finish_reason'] == 'function_call':
-                yield history, gr.Button.update(value='⏹️ Interrupt execution')
+                if bot_backend.function_name in bot_backend.jupyter_kernel.available_functions:
+                    yield history, gr.Button.update(value='⏹️ Interrupt execution')
+                else:
+                    yield history, gr.Button.update(interactive=False)
 
             if bot_backend.stop_generating:
                 response.close()

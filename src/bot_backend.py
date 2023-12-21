@@ -132,16 +132,19 @@ class BotBackend(GPTResponseLog):
         super().__init__()
         self.unique_id = hash(id(self))
         self.jupyter_work_dir = f'cache/work_dir_{self.unique_id}'
+        self.tool_log = f'cache/tool_{self.unique_id}.log'
         self.jupyter_kernel = JupyterKernel(work_dir=self.jupyter_work_dir)
         self.gpt_model_choice = "GPT-3.5"
         self.revocable_files = []
-        self._init_conversation()
+        self.system_msg = system_msg
+        self.functions = copy.deepcopy(functions)
         self._init_api_config()
         self._init_tools()
+        self._init_conversation()
         self._init_kwargs_for_chat_completion()
 
     def _init_conversation(self):
-        first_system_msg = {'role': 'system', 'content': system_msg}
+        first_system_msg = {'role': 'system', 'content': self.system_msg}
         self.context_window_tokens = 0  # num of tokens actually sent to GPT
         self.sliced = False  # whether the conversion is sliced
         if hasattr(self, 'conversation'):
@@ -159,28 +162,27 @@ class BotBackend(GPTResponseLog):
         config_openai_api(api_type, api_base, api_version, api_key)
 
     def _init_tools(self):
-        global system_msg, functions
         self.additional_tools = {}
 
         tools = get_available_tools(self.config)
         if tools:
-            system_msg += '\n\nAdditional tools:'
+            self.system_msg += '\n\nAdditional tools:'
 
         for tool in tools:
             system_prompt = tool['system_prompt']
             tool_name = tool['tool_name']
             tool_description = tool['tool_description']
 
-            system_msg += f'\n{tool_name}: {system_prompt}'
+            self.system_msg += f'\n{tool_name}: {system_prompt}'
 
-            functions.append(tool_description)
+            self.functions.append(tool_description)
             self.additional_tools[tool_name] = tool['tool']
 
     def _init_kwargs_for_chat_completion(self):
         self.kwargs_for_chat_completion = {
             'stream': True,
             'messages': self.conversation,
-            'functions': functions,
+            'functions': self.functions,
             'function_call': 'auto'
         }
 
@@ -204,6 +206,14 @@ class BotBackend(GPTResponseLog):
                 shutil.rmtree(path)
             else:
                 os.remove(path)
+
+    def _save_tool_log(self, tool_response):
+        with open(self.tool_log, 'a') as log_file:
+            log_file.write(f'Previous conversion: {self.conversation}\n')
+            log_file.write(f'Tool name: {self.function_name}\n')
+            log_file.write(f'Parameters: {self.function_args_str}\n')
+            log_file.write(f'Response: {tool_response}\n')
+            log_file.write('----------\n\n')
 
     def add_gpt_response_content_message(self):
         self.conversation.append(
@@ -236,7 +246,8 @@ class BotBackend(GPTResponseLog):
         )
 
     def add_function_call_response_message(self, function_response: Union[str, None], save_tokens=True):
-        add_code_cell_to_notebook(self.code_str)
+        if self.code_str is not None:
+            add_code_cell_to_notebook(self.code_str)
 
         self.conversation.append(
             {
@@ -256,6 +267,7 @@ class BotBackend(GPTResponseLog):
                     "content": function_response,
                 }
             )
+        self._save_tool_log(tool_response=function_response)
 
     def append_system_msg(self, prompt):
         self.conversation.append(
