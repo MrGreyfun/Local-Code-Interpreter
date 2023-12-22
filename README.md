@@ -38,7 +38,9 @@ Executing AI-generated code without human review on your own device is not safe.
    Jupyter Notebook    6.5.4
    gradio              3.39.0
    openai              0.27.8
-   ansi2html           1.8.0 
+   ansi2html           1.8.0
+   tiktoken            0.3.3
+   Pillow              9.4.0
    ```
    Other systems or package versions may also work. Please note that you should not update the `openai` package to the latest `1.x` version, as it has been rewritten and is not compatible with older versions.
    You can use the following command to directly install the required packages:
@@ -63,7 +65,7 @@ Please Note:
     - `gpt-4-0613` (and its 32K version)
     - `gpt-4-1106-preview` 
 
-    Older versions of the models will not work. Note that `gpt-4-vision-preview` lacks support function calling and is therefore not compatible with this program. 
+    Older versions of the models will not work. Note that `gpt-4-vision-preview` lacks support for function calling, therefore, it should not be set as `GPT-4` model. 
 
     For Azure OpenAI service users:
     - Set the `model_name` as your deployment name.
@@ -72,7 +74,10 @@ Please Note:
 2. **API Version Settings**
     If you're using Azure OpenAI service, set the `API_VERSION` to `2023-07-01-preview` in the `config.json` file. Note that other API versions do not support the necessary function calls for this program.
 
-3. **Model Context Window Settings**
+3. **Vision Model Settings**
+    Despite the `gpt-4-vision-preview` currently does not support function calling, we have implemented vision input using a non-end-to-end approach. To enable vision input, set `gpt-4-vision-preview` as `GPT-4V` model and set `available` to `true`.  Conversely, setting `available` to `false` to disables vision input when unnecessary, which will remove vision-related system prompts and reduce your API costs.
+    ![vision_demo](example_img/vision_example.jpg)
+4. **Model Context Window Settings**
     The `model_context_window` field records the context window for each model, which the program uses to slice conversations when they exceed the model's context window capacity. 
     Azure OpenAI service users should manually insert context window information using the model's deployment name in the following format:
     ```json
@@ -81,7 +86,7 @@ Please Note:
    
     Additionally, when OpenAI introduce new models, you can manually append the new model's context window information using the same format. (We will keep this file updated, but there might be delays)
 
-4. **Alternate API Key Handling**
+5. **Alternate API Key Handling**
     If you prefer not to store your API key in the `config.json` file, you can opt for an alternate approach:
     - Leave the `API_KEY` field in `config.json` as an empty string:
         ```json

@@ -3,7 +3,7 @@ openai==0.27.8
 gradio==3.39.0
 ansi2html==1.8.0
 tiktoken
-pillow
+Pillow
 numpy
 scipy
 openpyxl
