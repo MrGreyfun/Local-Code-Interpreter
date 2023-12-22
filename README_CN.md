@@ -14,7 +14,7 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
 
 - **无缝体验**：告别100MB文件大小限制和网速问题。使用本地版代码解释器，一切尽在掌控之中。
 
-- **可用GPT-3.5**：官方代码解释器只能在GPT-4中使用，但现在你甚至可以在一轮对话中自由切换GPT-3.5和GPT-4。
+- **可用GPT-3.5**：官方代码解释器只能在GPT-4中使用，但现在您甚至可以在一轮对话中自由切换GPT-3.5和GPT-4。
 
 - **数据更安全**：代码在本地运行，无需将文件上传至网络，提高了数据的安全性。
 
@@ -63,7 +63,7 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
     - `gpt-4-0613` (及其32K版本)
     - `gpt-4-1106-preview` 
 
-   旧版本的模型将无法使用。请注意，`gpt-4-vision-preview`模型同样不支持函数调用，因此本程序无法使用。
+   旧版本的模型将无法使用。请注意，`gpt-4-vision-preview`模型同样不支持函数调用，因此不能将其设置为`GPT-4`模型。
 
    对于使用Azure OpenAI的用户：
    - 请将`model_name`设置为您的模型的部署名（deployment name）。
@@ -72,7 +72,10 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
 2. **API版本设置**
     如果您使用Azure OpenAI服务，请在`config.json`文件中将`API_VERSION`设置为`2023-07-01-preview`，其他API版本不支持函数调用。
 
-3. **模型上下文窗口长度设置**
+3. **视觉模型设置**
+   尽管`gpt-4-vision-preview`模型不支持函数调用，我们仍然通过另一种非端到端的方式实现了图像输入。如果想使用图像输入，请将`gpt-4-vision-preview`设置为`GPT-4V`模型，并设置`available`字段设置为`true`。当不需要使用图像输入时候，可以将`available`字段设置为`false`，这将移除图像相关的系统提示，从而减少您的API费用。
+   ![vision_demo](example_img/vision_example.jpg)
+4. **模型上下文窗口长度设置**
     `model_context_window` 字段记录了每个模型的上下文窗口长度信息。当对话长度超过模型上下文窗口长度限制时，本程序会使用该信息来压缩对话长度。
     Azure OpenAI的用户需要按照以下格式，使用模型的部署名手动添加上下文窗口长度信息：
     ```json
@@ -80,7 +83,7 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
     ```
     此外，当OpenAI推出新模型的时候，您可以按照相同的格式手动添加新模型的上下文窗口长度信息。（我们会持续更新该文件，但是不一定及时）
 
-4. **使用环境变量配置密钥**
+5. **使用环境变量配置密钥**
     如果您不希望将API密钥存储在`config.json`文件中，可以选择通过环境变量来设置密钥：
     - 将`config.json`文件中的`API_KEY`设为空字符串：
         ```json

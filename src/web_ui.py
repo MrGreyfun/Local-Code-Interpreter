@@ -42,6 +42,11 @@ def add_file(state_dict: Dict, history: List, file) -> List:
 
     bot_backend.add_file_message(path=path, bot_msg=bot_msg)
 
+    _, suffix = os.path.splitext(filename)
+    if suffix in {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}:
+        copied_file_path = f'{bot_backend.jupyter_work_dir}/{filename}'
+        bot_msg[0] += f'\n<img src=\"file={copied_file_path}\" style=\'width: 600px; max-width:none; max-height:none\'>'
+
     return history
 
 
@@ -114,17 +119,18 @@ def bot(state_dict: Dict, history: List) -> List:
     bot_backend = get_bot_backend(state_dict)
 
     while bot_backend.finish_reason in ('new_input', 'function_call'):
-        if history[-1][0] is None:
-            history.append(
-                [None, ""]
-            )
+        if history[-1][1]:
+            history.append([None, ""])
         else:
             history[-1][1] = ""
 
         response = chat_completion(bot_backend=bot_backend)
         for chunk in response:
             if chunk['choices'] and chunk['choices'][0]['finish_reason'] == 'function_call':
-                yield history, gr.Button.update(value='⏹️ Interrupt executing')
+                if bot_backend.function_name in bot_backend.jupyter_kernel.available_functions:
+                    yield history, gr.Button.update(value='⏹️ Interrupt execution')
+                else:
+                    yield history, gr.Button.update(interactive=False)
 
             if bot_backend.stop_generating:
                 response.close()

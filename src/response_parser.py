@@ -1,4 +1,3 @@
-from abc import ABCMeta, abstractmethod
 from functional import *
 
 
@@ -50,10 +49,11 @@ class NameFunctionCallChoiceStrategy(ChoiceStrategy):
         return 'function_call' in self.delta and 'name' in self.delta['function_call']
 
     def execute(self, bot_backend: BotBackend, history: List, whether_exit: bool):
-        function_dict = bot_backend.jupyter_kernel.available_functions
+        python_function_dict = bot_backend.jupyter_kernel.available_functions
+        additional_tools = bot_backend.additional_tools
         bot_backend.set_function_name(function_name=self.delta['function_call']['name'])
         bot_backend.copy_current_bot_history(bot_history=history)
-        if bot_backend.function_name not in function_dict:
+        if bot_backend.function_name not in python_function_dict and bot_backend.function_name not in additional_tools:
             history.append(
                 [
                     None,
@@ -87,7 +87,7 @@ class ArgumentsFunctionCallChoiceStrategy(ChoiceStrategy):
             )
             history = copy.deepcopy(bot_backend.bot_history)
             history[-1][1] += bot_backend.display_code_block
-        else:
+        elif bot_backend.function_name == 'execute_code':
             temp_code_str = parse_json(function_args=bot_backend.function_args_str, finished=False)
             if temp_code_str is not None:
                 bot_backend.update_code_str(code_str=temp_code_str)
@@ -98,6 +98,8 @@ class ArgumentsFunctionCallChoiceStrategy(ChoiceStrategy):
                 )
                 history = copy.deepcopy(bot_backend.bot_history)
                 history[-1][1] += bot_backend.display_code_block
+        else:
+            pass
 
         return history, whether_exit
 
@@ -107,61 +109,102 @@ class FinishReasonChoiceStrategy(ChoiceStrategy):
         return self.choice['finish_reason'] is not None
 
     def execute(self, bot_backend: BotBackend, history: List, whether_exit: bool):
-        function_dict = bot_backend.jupyter_kernel.available_functions
 
         if bot_backend.content:
             bot_backend.add_gpt_response_content_message()
 
         bot_backend.update_finish_reason(finish_reason=self.choice['finish_reason'])
         if bot_backend.finish_reason == 'function_call':
-            try:
 
-                code_str = self.get_code_str(bot_backend)
-
-                bot_backend.update_code_str(code_str=code_str)
-                bot_backend.update_display_code_block(
-                    display_code_block="\n🟢Finished:\n```python\n{}\n```".format(code_str)
+            if bot_backend.function_name in bot_backend.jupyter_kernel.available_functions:
+                history, whether_exit = self.handle_execute_code_finish_reason(
+                    bot_backend=bot_backend, history=history, whether_exit=whether_exit
                 )
-                history = copy.deepcopy(bot_backend.bot_history)
-                history[-1][1] += bot_backend.display_code_block
-
-                # function response
-                bot_backend.update_code_executing_state(code_executing=True)
-                text_to_gpt, content_to_display = function_dict[
-                    bot_backend.function_name
-                ](code_str)
-                bot_backend.update_code_executing_state(code_executing=False)
-
-                # add function call to conversion
-                bot_backend.add_function_call_response_message(function_response=text_to_gpt, save_tokens=True)
-
-                if bot_backend.interrupt_signal_sent:
-                    bot_backend.append_system_msg(prompt='Code execution is manually stopped by user, no need to fix.')
-
-                add_function_response_to_bot_history(
-                    content_to_display=content_to_display, history=history, unique_id=bot_backend.unique_id
+            else:
+                history, whether_exit = self.handle_tool_finish_reason(
+                    bot_backend=bot_backend, history=history, whether_exit=whether_exit
                 )
-
-            except json.JSONDecodeError:
-                history.append(
-                    [None, f"GPT generate wrong function args: {bot_backend.function_args_str}"]
-                )
-                whether_exit = True
-                return history, whether_exit
-
-            except KeyError as key_error:
-                history.append([None, f'Backend key_error: {key_error}'])
-                whether_exit = True
-                return history, whether_exit
-
-            except Exception as e:
-                history.append([None, f'Backend error: {e}'])
-                whether_exit = True
-                return history, whether_exit
 
         bot_backend.reset_gpt_response_log_values(exclude=['finish_reason'])
 
         return history, whether_exit
+
+    def handle_execute_code_finish_reason(self, bot_backend: BotBackend, history: List, whether_exit: bool):
+        function_dict = bot_backend.jupyter_kernel.available_functions
+        try:
+
+            code_str = self.get_code_str(bot_backend)
+
+            bot_backend.update_code_str(code_str=code_str)
+            bot_backend.update_display_code_block(
+                display_code_block="\n🟢Finished:\n```python\n{}\n```".format(code_str)
+            )
+            history = copy.deepcopy(bot_backend.bot_history)
+            history[-1][1] += bot_backend.display_code_block
+
+            # function response
+            bot_backend.update_code_executing_state(code_executing=True)
+            text_to_gpt, content_to_display = function_dict[
+                bot_backend.function_name
+            ](code_str)
+            bot_backend.update_code_executing_state(code_executing=False)
+
+            # add function call to conversion
+            bot_backend.add_function_call_response_message(function_response=text_to_gpt, save_tokens=True)
+
+            if bot_backend.interrupt_signal_sent:
+                bot_backend.append_system_msg(prompt='Code execution is manually stopped by user, no need to fix.')
+
+            add_code_execution_result_to_bot_history(
+                content_to_display=content_to_display, history=history, unique_id=bot_backend.unique_id
+            )
+            return history, whether_exit
+
+        except json.JSONDecodeError:
+            history.append(
+                [None, f"GPT generate wrong function args: {bot_backend.function_args_str}"]
+            )
+            whether_exit = True
+            return history, whether_exit
+
+        except KeyError as key_error:
+            history.append([None, f'Backend key_error: {key_error}'])
+            whether_exit = True
+            return history, whether_exit
+
+        except Exception as e:
+            history.append([None, f'Backend error: {e}'])
+            whether_exit = True
+            return history, whether_exit
+
+    @staticmethod
+    def handle_tool_finish_reason(bot_backend: BotBackend, history: List, whether_exit: bool):
+        function_dict = bot_backend.additional_tools
+
+        # parser function args
+        try:
+            kwargs = json.loads(bot_backend.function_args_str)
+            kwargs.update({'workdir': bot_backend.jupyter_work_dir})
+        except json.JSONDecodeError:
+            history.append(
+                [None, f"GPT generate wrong function args: {bot_backend.function_args_str}"]
+            )
+            whether_exit = True
+            return history, whether_exit
+
+        else:
+            # function response
+            function_response, hypertext_to_display = function_dict[
+                bot_backend.function_name
+            ](**kwargs)
+
+            # add function call to conversion
+            bot_backend.add_function_call_response_message(function_response=function_response, save_tokens=False)
+
+            # add hypertext response to bot history
+            add_function_response_to_bot_history(hypertext_to_display=hypertext_to_display, history=history)
+
+            return history, whether_exit
 
     @staticmethod
     def get_code_str(bot_backend):

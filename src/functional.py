@@ -61,7 +61,7 @@ def chat_completion(bot_backend: BotBackend):
     return response
 
 
-def add_function_response_to_bot_history(content_to_display, history, unique_id):
+def add_code_execution_result_to_bot_history(content_to_display, history, unique_id):
     images, text = [], []
 
     # terminal output
@@ -104,6 +104,11 @@ def add_function_response_to_bot_history(content_to_display, history, unique_id)
                 f'<img src=\"file={path}\" style=\'width: 600px; max-width:none; max-height:none\'>'
             ]
         )
+
+
+def add_function_response_to_bot_history(hypertext_to_display, history):
+    if hypertext_to_display is not None:
+        history.append([None, hypertext_to_display])
 
 
 def parse_json(function_args: str, finished: bool):

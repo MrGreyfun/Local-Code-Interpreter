@@ -11,6 +11,10 @@
     "GPT-4": {
       "model_name": "<YOUR-DEPLOYMENT-NAME>",
       "available": true
+    },
+    "GPT-4V": {
+      "model_name": "<YOUR-DEPLOYMENT-NAME>",
+      "available": true
     }
   },
   "model_context_window": {
