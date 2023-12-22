@@ -42,7 +42,8 @@ def add_file(state_dict: Dict, history: List, file) -> List:
 
     bot_backend.add_file_message(path=path, bot_msg=bot_msg)
 
-    if filename.endswith('.jpg') or filename.endswith('.png'):
+    _, suffix = os.path.splitext(filename)
+    if suffix in {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}:
         copied_file_path = f'{bot_backend.jupyter_work_dir}/{filename}'
         bot_msg[0] += f'\n<img src=\"file={copied_file_path}\" style=\'width: 600px; max-width:none; max-height:none\'>'
 

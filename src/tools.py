@@ -1,5 +1,8 @@
 import openai
 import base64
+import os
+import io
+from PIL import Image
 from abc import ABCMeta, abstractmethod
 
 
@@ -30,8 +33,17 @@ def create_vision_chat_completion(base64_image, prompt):
 
 def image_to_base64(path):
     try:
-        with open(path, "rb") as image_file:
-            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+        _, suffix = os.path.splitext(path)
+        if suffix not in {'.jpg', '.jpeg', '.png', '.webp'}:
+            img = Image.open(path)
+            img_png = img.convert('RGB')
+            img_png.tobytes()
+            byte_buffer = io.BytesIO()
+            img_png.save(byte_buffer, 'PNG')
+            encoded_string = base64.b64encode(byte_buffer.getvalue()).decode('utf-8')
+        else:
+            with open(path, "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
         return encoded_string
     except:
         return None

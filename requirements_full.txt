@@ -2,6 +2,8 @@ notebook==6.5.4
 openai==0.27.8
 gradio==3.39.0
 ansi2html==1.8.0
+tiktoken
+pillow
 numpy
 scipy
 openpyxl
@@ -9,10 +11,8 @@ xlrd
 xlwt
 matplotlib
 pandas
-Pillow
 opencv-python
 PyPDF2
 pdfminer.six
 sympy
 scikit-learn
-tiktoken
