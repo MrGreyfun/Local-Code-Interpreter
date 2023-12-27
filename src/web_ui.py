@@ -169,6 +169,7 @@ def bot(state_dict: Dict, history: List) -> List:
                 if weather_exit:
                     exit(-1)
         except openai.OpenAIError as openai_error:
+            bot_backend.reset_gpt_response_log_values(exclude=['finish_reason'])
             yield history, gr.Button.update(interactive=False), gr.Button.update(visible=True)
             raise openai_error
 
