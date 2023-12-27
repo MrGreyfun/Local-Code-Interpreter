@@ -32,20 +32,22 @@ def add_text(state_dict: Dict, history: List, text: str) -> Tuple[List, Dict]:
     return history, gr.update(value="", interactive=False)
 
 
-def add_file(state_dict: Dict, history: List, file) -> List:
+def add_file(state_dict: Dict, history: List, files) -> List:
     bot_backend = get_bot_backend(state_dict)
-    path = file.name
-    filename = os.path.basename(path)
+    for file in files:
+        path = file.name
+        filename = os.path.basename(path)
 
-    bot_msg = [f'📁[{filename}]', None]
-    history.append(bot_msg)
+        bot_msg = [f'📁[{filename}]', None]
+        history.append(bot_msg)
 
-    bot_backend.add_file_message(path=path, bot_msg=bot_msg)
+        bot_backend.add_file_message(path=path, bot_msg=bot_msg)
 
-    _, suffix = os.path.splitext(filename)
-    if suffix in {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}:
-        copied_file_path = f'{bot_backend.jupyter_work_dir}/{filename}'
-        bot_msg[0] += f'\n<img src=\"file={copied_file_path}\" style=\'width: 600px; max-width:none; max-height:none\'>'
+        _, suffix = os.path.splitext(filename)
+        if suffix in {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}:
+            copied_file_path = f'{bot_backend.jupyter_work_dir}/{filename}'
+            bot_msg[0] += \
+                f'\n<img src=\"file={copied_file_path}\" style=\'width: 600px; max-width:none; max-height:none\'>'
 
     return history
 
@@ -181,7 +183,7 @@ if __name__ == '__main__':
                         container=False
                     )
                 with gr.Column(scale=0.15, min_width=0):
-                    file_upload_button = gr.UploadButton("📁", file_types=['file'])
+                    file_upload_button = gr.UploadButton("📁", file_count='multiple', file_types=['file'])
             with gr.Row(equal_height=True):
                 with gr.Column(scale=0.08, min_width=0):
                     check_box = gr.Checkbox(label="Use GPT-4", interactive=config['model']['GPT-4']['available'])
