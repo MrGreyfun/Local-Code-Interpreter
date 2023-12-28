@@ -47,7 +47,7 @@ def add_file(state_dict: Dict, history: List, files) -> List:
         if suffix in {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}:
             copied_file_path = f'{bot_backend.jupyter_work_dir}/{filename}'
             bot_msg[0] += \
-                f'\n<img src=\"file={copied_file_path}\" style=\'width: 600px; max-width:none; max-height:none\'>'
+                f'\n<img src=\"file={copied_file_path}\" style=\'max-width:none; max-height:none\'>'
 
     return history
 

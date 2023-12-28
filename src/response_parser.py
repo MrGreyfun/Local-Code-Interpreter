@@ -1,5 +1,4 @@
 from functional import *
-import gradio as gr
 
 
 class ChoiceStrategy(metaclass=ABCMeta):

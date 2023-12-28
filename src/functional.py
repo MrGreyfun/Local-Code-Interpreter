@@ -101,14 +101,17 @@ def add_code_execution_result_to_bot_history(content_to_display, history, unique
         history.append(
             [
                 None,
-                f'<img src=\"file={path}\" style=\'width: 600px; max-width:none; max-height:none\'>'
+                f'<img src=\"file={path}\" style=\'max-width:none; max-height:none\'>'
             ]
         )
 
 
 def add_function_response_to_bot_history(hypertext_to_display, history):
     if hypertext_to_display is not None:
-        history.append([None, hypertext_to_display])
+        if history[-1][1]:
+            history.append([None, hypertext_to_display])
+        else:
+            history[-1][1] = hypertext_to_display
 
 
 def parse_json(function_args: str, finished: bool):
