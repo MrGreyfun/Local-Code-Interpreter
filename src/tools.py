@@ -6,10 +6,10 @@ from PIL import Image
 from abc import ABCMeta, abstractmethod
 
 
-def create_vision_chat_completion(base64_image, prompt):
+def create_vision_chat_completion(vision_model, base64_image, prompt):
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4-vision-preview",
+            model=vision_model,
             messages=[
                 {
                     "role": "user",
@@ -49,13 +49,13 @@ def image_to_base64(path):
         return None
 
 
-def inquire_image(workdir, path, prompt):
-    image_base64 = image_to_base64(f'{workdir}/{path}')
+def inquire_image(work_dir, vision_model, path, prompt):
+    image_base64 = image_to_base64(f'{work_dir}/{path}')
     hypertext_to_display = None
     if image_base64 is None:
         return "Error: Image transform error", None
     else:
-        response = create_vision_chat_completion(image_base64, prompt)
+        response = create_vision_chat_completion(vision_model, image_base64, prompt)
         if response is None:
             return "Model response error", None
         else:
@@ -104,6 +104,10 @@ class ImageInquireTool(Tool):
                     },
                     "required": ["path", "prompt"]
                 }
+            },
+            "additional_parameters": {
+                "work_dir": lambda bot_backend: bot_backend.jupyter_work_dir,
+                "vision_model": self.config['model']['GPT-4V']['model_name']
             }
         }
 

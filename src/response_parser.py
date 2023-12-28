@@ -1,4 +1,5 @@
 from functional import *
+import gradio as gr
 
 
 class ChoiceStrategy(metaclass=ABCMeta):
@@ -180,11 +181,13 @@ class FinishReasonChoiceStrategy(ChoiceStrategy):
     @staticmethod
     def handle_tool_finish_reason(bot_backend: BotBackend, history: List, whether_exit: bool):
         function_dict = bot_backend.additional_tools
+        function_name = bot_backend.function_name
+        function = function_dict[function_name]['tool']
 
         # parser function args
         try:
             kwargs = json.loads(bot_backend.function_args_str)
-            kwargs.update({'workdir': bot_backend.jupyter_work_dir})
+            kwargs.update(function_dict[function_name]['additional_parameters'])
         except json.JSONDecodeError:
             history.append(
                 [None, f"GPT generate wrong function args: {bot_backend.function_args_str}"]
@@ -194,9 +197,7 @@ class FinishReasonChoiceStrategy(ChoiceStrategy):
 
         else:
             # function response
-            function_response, hypertext_to_display = function_dict[
-                bot_backend.function_name
-            ](**kwargs)
+            function_response, hypertext_to_display = function(**kwargs)
 
             # add function call to conversion
             bot_backend.add_function_call_response_message(function_response=function_response, save_tokens=False)
@@ -239,7 +240,7 @@ class ChoiceHandler:
         return history, whether_exit
 
 
-def parse_response(chunk, history, bot_backend: BotBackend):
+def parse_response(chunk, history: List, bot_backend: BotBackend):
     """
     :return: history, whether_exit
     """

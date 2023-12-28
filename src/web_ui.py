@@ -1,6 +1,4 @@
 import gradio as gr
-import openai
-
 from response_parser import *
 
 
