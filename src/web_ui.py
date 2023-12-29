@@ -46,8 +46,10 @@ def add_file(state_dict: Dict, history: List, files) -> List:
         _, suffix = os.path.splitext(filename)
         if suffix in {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}:
             copied_file_path = f'{bot_backend.jupyter_work_dir}/{filename}'
+            width, height = get_image_size(copied_file_path)
             bot_msg[0] += \
-                f'\n<img src=\"file={copied_file_path}\" style=\'max-width:none; max-height:none\'>'
+                f'\n<img src=\"file={copied_file_path}\" style=\'{"" if width < 800 else "width: 800px;"} max-width' \
+                f':none; max-height:none\'> '
 
     return history
 
