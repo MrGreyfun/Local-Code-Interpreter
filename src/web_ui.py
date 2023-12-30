@@ -32,20 +32,24 @@ def add_text(state_dict: Dict, history: List, text: str) -> Tuple[List, Dict]:
     return history, gr.update(value="", interactive=False)
 
 
-def add_file(state_dict: Dict, history: List, file) -> List:
+def add_file(state_dict: Dict, history: List, files) -> List:
     bot_backend = get_bot_backend(state_dict)
-    path = file.name
-    filename = os.path.basename(path)
+    for file in files:
+        path = file.name
+        filename = os.path.basename(path)
 
-    bot_msg = [f'📁[{filename}]', None]
-    history.append(bot_msg)
+        bot_msg = [f'📁[{filename}]', None]
+        history.append(bot_msg)
 
-    bot_backend.add_file_message(path=path, bot_msg=bot_msg)
+        bot_backend.add_file_message(path=path, bot_msg=bot_msg)
 
-    _, suffix = os.path.splitext(filename)
-    if suffix in {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}:
-        copied_file_path = f'{bot_backend.jupyter_work_dir}/{filename}'
-        bot_msg[0] += f'\n<img src=\"file={copied_file_path}\" style=\'width: 600px; max-width:none; max-height:none\'>'
+        _, suffix = os.path.splitext(filename)
+        if suffix in {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}:
+            copied_file_path = f'{bot_backend.jupyter_work_dir}/{filename}'
+            width, height = get_image_size(copied_file_path)
+            bot_msg[0] += \
+                f'\n<img src=\"file={copied_file_path}\" style=\'{"" if width < 800 else "width: 800px;"} max-width' \
+                f':none; max-height:none\'> '
 
     return history
 
@@ -124,43 +128,52 @@ def bot(state_dict: Dict, history: List) -> List:
         else:
             history[-1][1] = ""
 
-        response = chat_completion(bot_backend=bot_backend)
-        for chunk in response:
-            if chunk['choices'] and chunk['choices'][0]['finish_reason'] == 'function_call':
-                if bot_backend.function_name in bot_backend.jupyter_kernel.available_functions:
-                    yield history, gr.Button.update(value='⏹️ Interrupt execution')
-                else:
-                    yield history, gr.Button.update(interactive=False)
+        try:
+            response = chat_completion(bot_backend=bot_backend)
+            for chunk in response:
+                if chunk['choices'] and chunk['choices'][0]['finish_reason'] == 'function_call':
+                    if bot_backend.function_name in bot_backend.jupyter_kernel.available_functions:
+                        yield history, gr.Button.update(value='⏹️ Interrupt execution'), gr.Button.update(visible=False)
+                    else:
+                        yield history, gr.Button.update(interactive=False), gr.Button.update(visible=False)
 
-            if bot_backend.stop_generating:
-                response.close()
-                if bot_backend.content:
-                    bot_backend.add_gpt_response_content_message()
-                if bot_backend.display_code_block:
-                    bot_backend.update_display_code_block(
-                        display_code_block="\n⚫Stopped:\n```python\n{}\n```".format(bot_backend.code_str)
-                    )
-                    history = copy.deepcopy(bot_backend.bot_history)
-                    history[-1][1] += bot_backend.display_code_block
-                    bot_backend.add_function_call_response_message(function_response=None)
+                if bot_backend.stop_generating:
+                    response.close()
+                    if bot_backend.content:
+                        bot_backend.add_gpt_response_content_message()
+                    if bot_backend.display_code_block:
+                        bot_backend.update_display_code_block(
+                            display_code_block="\n⚫Stopped:\n```python\n{}\n```".format(bot_backend.code_str)
+                        )
+                        history = copy.deepcopy(bot_backend.bot_history)
+                        history[-1][1] += bot_backend.display_code_block
+                        bot_backend.add_function_call_response_message(function_response=None)
 
-                bot_backend.reset_gpt_response_log_values()
-                break
+                    bot_backend.reset_gpt_response_log_values()
+                    break
 
-            history, weather_exit = parse_response(
-                chunk=chunk,
-                history=history,
-                bot_backend=bot_backend
-            )
+                history, weather_exit = parse_response(
+                    chunk=chunk,
+                    history=history,
+                    bot_backend=bot_backend
+                )
 
-            yield history, gr.Button.update(
-                interactive=False if bot_backend.stop_generating else True,
-                value='⏹️ Stop generating'
-            )
-            if weather_exit:
-                exit(-1)
+                yield (
+                    history,
+                    gr.Button.update(
+                        interactive=False if bot_backend.stop_generating else True,
+                        value='⏹️ Stop generating'
+                    ),
+                    gr.Button.update(visible=False)
+                )
+                if weather_exit:
+                    exit(-1)
+        except openai.OpenAIError as openai_error:
+            bot_backend.reset_gpt_response_log_values(exclude=['finish_reason'])
+            yield history, gr.Button.update(interactive=False), gr.Button.update(visible=True)
+            raise openai_error
 
-    yield history, gr.Button.update(interactive=False, value='⏹️ Stop generating')
+    yield history, gr.Button.update(interactive=False, value='⏹️ Stop generating'), gr.Button.update(visible=False)
 
 
 if __name__ == '__main__':
@@ -181,14 +194,16 @@ if __name__ == '__main__':
                         container=False
                     )
                 with gr.Column(scale=0.15, min_width=0):
-                    file_upload_button = gr.UploadButton("📁", file_types=['file'])
+                    file_upload_button = gr.UploadButton("📁", file_count='multiple', file_types=['file'])
             with gr.Row(equal_height=True):
                 with gr.Column(scale=0.08, min_width=0):
                     check_box = gr.Checkbox(label="Use GPT-4", interactive=config['model']['GPT-4']['available'])
-                with gr.Column(scale=0.467, min_width=0):
+                with gr.Column(scale=0.314, min_width=0):
                     model_token_limit = config['model_context_window'][config['model']['GPT-3.5']['model_name']]
                     token_count_display_text = f"**Context token:** 0/{model_token_limit}"
                     token_monitor = gr.Markdown(value=token_count_display_text)
+                with gr.Column(scale=0.15, min_width=0):
+                    retry_button = gr.Button(value='🔂OpenAI Error, click here to retry', visible=False)
                 with gr.Column(scale=0.15, min_width=0):
                     stop_generation_button = gr.Button(value='⏹️ Stop generating', interactive=False)
                 with gr.Column(scale=0.15, min_width=0):
@@ -200,12 +215,23 @@ if __name__ == '__main__':
 
         # Components function binding
         txt_msg = text_box.submit(add_text, [state, chatbot, text_box], [chatbot, text_box], queue=False).then(
-            bot, [state, chatbot], [chatbot, stop_generation_button]
+            lambda: gr.Button.update(interactive=False), None, [undo_file_button], queue=False
+        ).then(
+            bot, [state, chatbot], [chatbot, stop_generation_button, retry_button]
         )
         txt_msg.then(fn=refresh_file_display, inputs=[state], outputs=[file_output])
         txt_msg.then(lambda: gr.update(interactive=True), None, [text_box], queue=False)
-        txt_msg.then(lambda: gr.Button.update(interactive=False), None, [undo_file_button], queue=False)
         txt_msg.then(fn=refresh_token_count, inputs=[state], outputs=[token_monitor])
+
+        retry_button.click(lambda: gr.Button.update(visible=False), None, [retry_button], queue=False).then(
+            bot, [state, chatbot], [chatbot, stop_generation_button, retry_button]
+        ).then(
+            fn=refresh_file_display, inputs=[state], outputs=[file_output]
+        ).then(
+            lambda: gr.update(interactive=True), None, [text_box], queue=False
+        ).then(
+            fn=refresh_token_count, inputs=[state], outputs=[token_monitor]
+        )
 
         check_box.change(fn=switch_to_gpt4, inputs=[state, check_box]).then(
             fn=refresh_token_count, inputs=[state], outputs=[token_monitor]

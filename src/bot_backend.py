@@ -163,19 +163,25 @@ class BotBackend(GPTResponseLog):
     def _init_tools(self):
         self.additional_tools = {}
 
-        tools = get_available_tools(self.config)
-        if tools:
+        tool_datas = get_available_tools(self.config)
+        if tool_datas:
             self.system_msg += '\n\nAdditional tools:'
 
-        for tool in tools:
-            system_prompt = tool['system_prompt']
-            tool_name = tool['tool_name']
-            tool_description = tool['tool_description']
+        for tool_data in tool_datas:
+            system_prompt = tool_data['system_prompt']
+            tool_name = tool_data['tool_name']
+            tool_description = tool_data['tool_description']
 
             self.system_msg += f'\n{tool_name}: {system_prompt}'
 
             self.functions.append(tool_description)
-            self.additional_tools[tool_name] = tool['tool']
+            self.additional_tools[tool_name] = {
+                'tool': tool_data['tool'],
+                'additional_parameters': copy.deepcopy(tool_data['additional_parameters'])
+            }
+            for parameter, value in self.additional_tools[tool_name]['additional_parameters'].items():
+                if callable(value):
+                    self.additional_tools[tool_name]['additional_parameters'][parameter] = value(self)
 
     def _init_kwargs_for_chat_completion(self):
         self.kwargs_for_chat_completion = {
@@ -193,7 +199,11 @@ class BotBackend(GPTResponseLog):
             self.kwargs_for_chat_completion['model'] = model_name
 
     def _backup_all_files_in_work_dir(self):
+        count = 1
         backup_dir = f'cache/backup_{self.unique_id}'
+        while os.path.exists(backup_dir):
+            count += 1
+            backup_dir = f'cache/backup_{self.unique_id}_{count}'
         shutil.copytree(src=self.jupyter_work_dir, dst=backup_dir)
 
     def _clear_all_files_in_work_dir(self, backup=True):

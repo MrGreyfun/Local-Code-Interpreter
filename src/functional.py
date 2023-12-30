@@ -98,17 +98,22 @@ def add_code_execution_result_to_bot_history(content_to_display, history, unique
         path = f'{temp_path}/{hash(time.time())}.{filetype}'
         with open(path, 'wb') as f:
             f.write(image_bytes)
+        width, height = get_image_size(path)
         history.append(
             [
                 None,
-                f'<img src=\"file={path}\" style=\'width: 600px; max-width:none; max-height:none\'>'
+                f'<img src=\"file={path}\" style=\'{"" if width < 800 else "width: 800px;"} max-width:none; '
+                f'max-height:none\'> '
             ]
         )
 
 
 def add_function_response_to_bot_history(hypertext_to_display, history):
     if hypertext_to_display is not None:
-        history.append([None, hypertext_to_display])
+        if history[-1][1]:
+            history.append([None, hypertext_to_display])
+        else:
+            history[-1][1] = hypertext_to_display
 
 
 def parse_json(function_args: str, finished: bool):
@@ -172,3 +177,9 @@ def parse_json(function_args: str, finished: bool):
 
     except Exception as e:
         return None
+
+
+def get_image_size(image_path):
+    with Image.open(image_path) as img:
+        width, height = img.size
+    return width, height
