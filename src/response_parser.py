@@ -98,6 +98,9 @@ class ArgumentsFunctionCallChoiceStrategy(ChoiceStrategy):
                 )
                 history = copy.deepcopy(bot_backend.bot_history)
                 history[-1][1] += bot_backend.display_code_block
+            else:
+                history = copy.deepcopy(bot_backend.bot_history)
+                history[-1][1] += bot_backend.display_code_block
         else:
             pass
 

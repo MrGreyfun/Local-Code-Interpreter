@@ -144,11 +144,23 @@ def parse_json(function_args: str, finished: bool):
                         break
                     else:
                         if index + 1 == len(function_args):
-                            return ''
+                            return None
                         else:
                             temp_code_str = function_args[index + 1:]
                             if '\n' in temp_code_str:
-                                return temp_code_str.strip('\n')
+                                try:
+                                    return json.loads(function_args + '"}')['code']
+                                except json.JSONDecodeError:
+                                    try:
+                                        return json.loads(function_args + '}')['code']
+                                    except json.JSONDecodeError:
+                                        try:
+                                            return json.loads(function_args)['code']
+                                        except json.JSONDecodeError:
+                                            if temp_code_str[-1] in ('"', '\n'):
+                                                return None
+                                            else:
+                                                return temp_code_str.strip('\n')
                             else:
                                 return json.loads(function_args + '"}')['code']
                 elif parser_log['begin_"code"']:
