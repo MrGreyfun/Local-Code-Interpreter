@@ -217,7 +217,7 @@ class BotBackend(GPTResponseLog):
                 os.remove(path)
 
     def _save_tool_log(self, tool_response):
-        with open(self.tool_log, 'a') as log_file:
+        with open(self.tool_log, 'a', encoding='utf-8') as log_file:
             log_file.write(f'Previous conversion: {self.conversation}\n')
             log_file.write(f'Model choice: {self.gpt_model_choice}\n')
             log_file.write(f'Tool name: {self.function_name}\n')

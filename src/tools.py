@@ -126,9 +126,12 @@ class ImageInquireTool(Tool):
         return {
             "tool_name": "inquire_image",
             "tool": inquire_image,
-            "system_prompt": "If needed, utilize the 'inquire_image' tool to query an AI model regarding the content "
-                             "of images uploaded by users. Avoid phrases like\"based on the analysis\"; "
-                             "instead, respond as if you viewed the image by yourself.",
+            "system_prompt": "If necessary, utilize the 'inquire_image' tool to query an AI model regarding the "
+                             "content of images uploaded by users. Avoid phrases like\"based on the analysis\"; "
+                             "instead, respond as if you viewed the image by yourself. Keep in mind that not every"
+                             "tasks related to images require knowledge of the image content, such as converting "
+                             "an image format or extracting image file attributes, which should use `execute_code` "
+                             "tool instead. Use the tool only when understanding the image content is necessary.",
             "tool_description": {
                 "name": "inquire_image",
                 "description": "This function enables you to inquire with an AI model about the contents of an image "
