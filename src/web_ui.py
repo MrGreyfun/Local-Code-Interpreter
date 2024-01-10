@@ -94,7 +94,7 @@ def refresh_token_count(state_dict: Dict):
     return gr.Markdown.update(value=display_text)
 
 
-def restart_ui(history: List) -> Tuple[List, Dict, Dict, Dict, Dict, Dict]:
+def restart_ui(history: List) -> Tuple[List, Dict, Dict, Dict, Dict, Dict, Dict]:
     history.clear()
     return (
         history,
@@ -102,7 +102,8 @@ def restart_ui(history: List) -> Tuple[List, Dict, Dict, Dict, Dict, Dict]:
         gr.Button.update(interactive=False),
         gr.Button.update(interactive=False),
         gr.Button.update(interactive=False),
-        gr.Button.update(interactive=False)
+        gr.Button.update(interactive=False),
+        gr.Button.update(visible=False)
     )
 
 
@@ -255,7 +256,10 @@ if __name__ == '__main__':
 
         restart_button.click(
             fn=restart_ui, inputs=[chatbot],
-            outputs=[chatbot, text_box, restart_button, file_upload_button, undo_file_button, stop_generation_button]
+            outputs=[
+                chatbot, text_box, restart_button, file_upload_button, undo_file_button, stop_generation_button,
+                retry_button
+            ]
         ).then(
             fn=restart_bot_backend, inputs=[state], queue=False
         ).then(
