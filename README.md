@@ -72,7 +72,7 @@ Please Note:
     - Confirm that the deployed model corresponds to the `0613` or newer version.
 
 2. **API Version Settings**
-    If you're using Azure OpenAI service, set the `API_VERSION` to `2023-07-01-preview` in the `config.json` file. Note that other API versions do not support the necessary function calls for this program.
+    If you're using Azure OpenAI service, set the `API_VERSION` to `2023-12-01-preview` in the `config.json` file. Note that API versions older than `2023-07-01-preview` do not support the necessary function calls for this program and `2023-12-01-preview` is recommended as older versions will be deprecated in the near future.
 
 3. **Vision Model Settings**
     Despite the `gpt-4-vision-preview` currently does not support function calling, we have implemented vision input using a non-end-to-end approach. To enable vision input, set `gpt-4-vision-preview` as `GPT-4V` model and set `available` to `true`.  Conversely, setting `available` to `false` to disables vision input when unnecessary, which will remove vision-related system prompts and reduce your API costs.
