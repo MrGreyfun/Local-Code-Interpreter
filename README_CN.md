@@ -70,7 +70,7 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
    - 确认部署的模型是`0613`及以上版本。
 
 2. **API版本设置**
-    如果您使用Azure OpenAI服务，请在`config.json`文件中将`API_VERSION`设置为`2023-07-01-preview`，其他API版本不支持函数调用。
+    如果您使用Azure OpenAI服务，请在`config.json`文件中将`API_VERSION`设置为`2023-12-01-preview`。请注意，`2023-12-01-preview` 之前的API版本不支持函数调用，而我们推荐使用`2023-12-01-preview`，因为更早的版本即将停止使用。
 
 3. **视觉模型设置**
    尽管`gpt-4-vision-preview`模型不支持函数调用，我们仍然通过另一种非端到端的方式实现了图像输入。如果想使用图像输入，请将`gpt-4-vision-preview`设置为`GPT-4V`模型，并设置`available`字段设置为`true`。当不需要使用图像输入时候，可以将`available`字段设置为`false`，这将移除图像相关的系统提示，从而减少您的API费用。

@@ -317,8 +317,8 @@ class BotBackend(GPTResponseLog):
         self.update_interrupt_signal_sent(interrupt_signal_sent=True)
 
     def restart(self):
-        self._clear_all_files_in_work_dir()
         self.revocable_files.clear()
         self._init_conversation()
         self.reset_gpt_response_log_values()
         self.jupyter_kernel.restart_jupyter_kernel()
+        self._clear_all_files_in_work_dir()
