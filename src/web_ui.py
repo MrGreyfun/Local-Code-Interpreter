@@ -153,7 +153,7 @@ def bot(state_dict: Dict, history: List) -> List:
                     bot_backend.reset_gpt_response_log_values()
                     break
 
-                history, weather_exit = parse_response(
+                history, whether_exit = parse_response(
                     chunk=chunk,
                     history=history,
                     bot_backend=bot_backend
@@ -167,7 +167,7 @@ def bot(state_dict: Dict, history: List) -> List:
                     ),
                     gr.Button.update(visible=False)
                 )
-                if weather_exit:
+                if whether_exit:
                     exit(-1)
         except openai.OpenAIError as openai_error:
             bot_backend.reset_gpt_response_log_values(exclude=['finish_reason'])
