@@ -124,9 +124,9 @@ Please Note:
    python web_ui.py -n <path_to_notebook>
    ```
 ## TO DO (Pull requests welcome)
-- [] Migrate to `openai` version 1.x
-- [] Replace "function call" to "tool call" in code and prompt
-- [] Update to the latest version of `gradio`
+- [ ] Migrate to `openai` version 1.x
+- [ ] Replace "function call" to "tool call" in code and prompt
+- [ ] Update to the latest version of `gradio`
 
 ## Example
 
