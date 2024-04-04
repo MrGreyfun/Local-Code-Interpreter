@@ -62,8 +62,10 @@ Please Note:
     This program relies on the function calling capability of the `0613` or newer versions of models:
     - `gpt-3.5-turbo-0613` (and its 16K version)
     - `gpt-3.5-turbo-1106`
+    - `gpt-3.5-turbo-0125`
     - `gpt-4-0613` (and its 32K version)
     - `gpt-4-1106-preview` 
+    - `gpt-4-0125-preview`
 
     Older versions of the models will not work. Note that `gpt-4-vision-preview` lacks support for function calling, therefore, it should not be set as `GPT-4` model. 
 
@@ -72,7 +74,7 @@ Please Note:
     - Confirm that the deployed model corresponds to the `0613` or newer version.
 
 2. **API Version Settings**
-    If you're using Azure OpenAI service, set the `API_VERSION` to `2023-12-01-preview` in the `config.json` file. Note that API versions older than `2023-07-01-preview` do not support the necessary function calls for this program and `2023-12-01-preview` is recommended as older versions will be deprecated in the near future.
+    If you're using Azure OpenAI service, set the `API_VERSION` to `2024-03-01-preview` in the `config.json` file. Note that API versions older than `2023-07-01-preview` do not support the necessary function calls for this program and `2024-03-01-preview` is recommended as older versions will be deprecated in the near future.
 
 3. **Vision Model Settings**
     Despite the `gpt-4-vision-preview` currently does not support function calling, we have implemented vision input using a non-end-to-end approach. To enable vision input, set `gpt-4-vision-preview` as `GPT-4V` model and set `available` to `true`.  Conversely, setting `available` to `false` to disables vision input when unnecessary, which will remove vision-related system prompts and reduce your API costs.
@@ -121,6 +123,10 @@ Please Note:
    ```shell
    python web_ui.py -n <path_to_notebook>
    ```
+## TO DO (Pull requests welcome)
+- [] Migrate to `openai` version 1.x
+- [] Replace "function call" to "tool call" in code and prompt
+- [] Update to the latest version of `gradio`
 
 ## Example
 
