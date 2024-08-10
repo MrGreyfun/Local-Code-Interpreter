@@ -1,3 +1,4 @@
+import openai
 import gradio as gr
 from response_parser import *
 
@@ -123,7 +124,7 @@ def stop_generating(state_dict: Dict) -> None:
 def bot(state_dict: Dict, history: List) -> List:
     bot_backend = get_bot_backend(state_dict)
 
-    while bot_backend.finish_reason in ('new_input', 'function_call'):
+    while bot_backend.finish_reason in ('new_input', 'tool_calls'):
         if history[-1][1]:
             history.append([None, ""])
         else:
@@ -132,7 +133,7 @@ def bot(state_dict: Dict, history: List) -> List:
         try:
             response = chat_completion(bot_backend=bot_backend)
             for chunk in response:
-                if chunk['choices'] and chunk['choices'][0]['finish_reason'] == 'function_call':
+                if chunk.choices and chunk.choices[0].finish_reason == 'tool_calls':
                     if bot_backend.function_name in bot_backend.jupyter_kernel.available_functions:
                         yield history, gr.Button.update(value='⏹️ Interrupt execution'), gr.Button.update(visible=False)
                     else:
@@ -198,7 +199,8 @@ if __name__ == '__main__':
                     file_upload_button = gr.UploadButton("📁", file_count='multiple', file_types=['file'])
             with gr.Row(equal_height=True):
                 with gr.Column(scale=0.08, min_width=0):
-                    check_box = gr.Checkbox(label="Use GPT-4", interactive=config['model']['GPT-4']['available'])
+                    check_box = gr.Checkbox(
+                        label="Use GPT-4", interactive=config['model']['GPT-4']['available'], value=True)
                 with gr.Column(scale=0.314, min_width=0):
                     model_token_limit = config['model_context_window'][config['model']['GPT-3.5']['model_name']]
                     token_count_display_text = f"**Context token:** 0/{model_token_limit}"

@@ -9,11 +9,11 @@
       "available": true
     },
     "GPT-4": {
-      "model_name": "gpt-4-0125-preview",
+      "model_name": "gpt-4o-2024-08-06",
       "available": true
     },
     "GPT-4V": {
-      "model_name": "gpt-4-vision-preview",
+      "model_name": "gpt-4o-2024-08-06",
       "available": true
     }
   },
@@ -30,6 +30,11 @@
     "gpt-4-turbo-preview": 128000,
     "gpt-4-1106-preview": 128000,
     "gpt-4-0125-preview": 128000,
-    "gpt-4-vision-preview": 128000
+    "gpt-4-vision-preview": 128000,
+    "gpt-4o": 128000,
+    "gpt-4o-2024-05-13": 128000,
+    "gpt-4o-2024-08-06": 128000,
+    "gpt-4o-mini": 128000,
+    "gpt-4o-mini-2024-07-18": 128000
   }
 }

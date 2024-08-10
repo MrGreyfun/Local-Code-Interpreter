@@ -37,10 +37,10 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
    ```text 
    Jupyter Notebook    6.5.4
    gradio              3.39.0
-   openai              0.27.8
+   openai              1.40.3
    ansi2html           1.8.0 
    ```
-   其他系统或库版本也可能有效。请注意，不要将`openai`包升级至最新的`1.x`版本，该版本已重写，与旧版本不兼容。
+   其他系统或库版本也可能有效。
    您可以使用以下命令直接安装所需的软件包：
    ```shell
    pip install -r requirements.txt
@@ -64,6 +64,9 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
     - `gpt-4-0613` (及其32K版本)
     - `gpt-4-1106-preview` 
     - `gpt-4-0125-preview`
+    - `gpt-4o-2024-05-13`
+    - `gpt-4o-2024-08-06`
+    - `gpt-4o-mini-2024-07-18`
 
    旧版本的模型将无法使用。请注意，`gpt-4-vision-preview`模型同样不支持函数调用，因此不能将其设置为`GPT-4`模型。
 

@@ -57,7 +57,7 @@ def chat_completion(bot_backend: BotBackend):
     assert model_name in config['model_context_window'], \
         f"{model_name} lacks context window information. Please check the config.json file."
 
-    response = openai.ChatCompletion.create(**kwargs_for_chat_completion)
+    response = bot_backend.client.chat.completions.create(**kwargs_for_chat_completion)
     return response
 
 
