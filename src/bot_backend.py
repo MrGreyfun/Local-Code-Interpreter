@@ -1,6 +1,7 @@
 import json
 import copy
 import shutil
+import openai
 from jupyter_backend import *
 from tools import *
 from typing import *
@@ -8,20 +9,25 @@ from notebook_serializer import add_markdown_to_notebook, add_code_cell_to_noteb
 
 functions = [
     {
-        "name": "execute_code",
-        "description": "This function allows you to execute Python code and retrieve the terminal output. If the code "
-                       "generates image output, the function will return the text '[image]'. The code is sent to a "
-                       "Jupyter kernel for execution. The kernel will remain active after execution, retaining all "
-                       "variables in memory.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string",
-                    "description": "The code text"
-                }
-            },
-            "required": ["code"],
+        "type": "function",
+        "function": {
+            "name": "execute_code",
+            "description": "This function allows you to execute Python code and retrieve the terminal output. If the code "
+                           "generates image output, the function will return the text '[image]'. The code is sent to a "
+                           "Jupyter kernel for execution. The kernel will remain active after execution, retaining all "
+                           "variables in memory.",
+            "strict": True,
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "description": "The code text"
+                    }
+                },
+                "required": ["code"],
+                "additionalProperties": False,
+            }
         }
     },
 ]
@@ -50,11 +56,11 @@ def get_config():
     return config
 
 
-def config_openai_api(api_type, api_base, api_version, api_key):
-    openai.api_type = api_type
-    openai.api_base = api_base
-    openai.api_version = api_version
-    openai.api_key = api_key
+def create_openai_client(api_type, api_base, api_version, api_key):
+    if api_type == "azure":
+        return openai.AzureOpenAI(api_version=api_version, azure_endpoint=api_base, api_key=api_key)
+    else:
+        return openai.OpenAI(base_url=api_base, api_key=api_key)
 
 
 class GPTResponseLog:
@@ -133,7 +139,7 @@ class BotBackend(GPTResponseLog):
         self.jupyter_work_dir = f'cache/work_dir_{self.unique_id}'
         self.tool_log = f'cache/tool_{self.unique_id}.log'
         self.jupyter_kernel = JupyterKernel(work_dir=self.jupyter_work_dir)
-        self.gpt_model_choice = "GPT-3.5"
+        self.gpt_model_choice = "GPT-4"
         self.revocable_files = []
         self.system_msg = system_msg
         self.functions = copy.deepcopy(functions)
@@ -158,12 +164,12 @@ class BotBackend(GPTResponseLog):
         api_base = self.config['API_base']
         api_version = self.config['API_VERSION']
         api_key = config['API_KEY']
-        config_openai_api(api_type, api_base, api_version, api_key)
+        self.client = create_openai_client(api_type, api_base, api_version, api_key)
 
     def _init_tools(self):
         self.additional_tools = {}
 
-        tool_datas = get_available_tools(self.config)
+        tool_datas = get_available_tools(self.client, self.config)
         if tool_datas:
             self.system_msg += '\n\nAdditional tools:'
 
@@ -177,7 +183,7 @@ class BotBackend(GPTResponseLog):
             self.functions.append(tool_description)
             self.additional_tools[tool_name] = {
                 'tool': tool_data['tool'],
-                'additional_parameters': copy.deepcopy(tool_data['additional_parameters'])
+                'additional_parameters': copy.copy(tool_data['additional_parameters'])
             }
             for parameter, value in self.additional_tools[tool_name]['additional_parameters'].items():
                 if callable(value):
@@ -187,8 +193,8 @@ class BotBackend(GPTResponseLog):
         self.kwargs_for_chat_completion = {
             'stream': True,
             'messages': self.conversation,
-            'functions': self.functions,
-            'function_call': 'auto'
+            'tools': self.functions,
+            'tool_choice': 'auto'
         }
 
         model_name = self.config['model'][self.gpt_model_choice]['model_name']

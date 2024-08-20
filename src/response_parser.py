@@ -4,7 +4,7 @@ from functional import *
 class ChoiceStrategy(metaclass=ABCMeta):
     def __init__(self, choice):
         self.choice = choice
-        self.delta = choice['delta']
+        self.delta = choice.delta
 
     @abstractmethod
     def support(self):
@@ -18,16 +18,16 @@ class ChoiceStrategy(metaclass=ABCMeta):
 class RoleChoiceStrategy(ChoiceStrategy):
 
     def support(self):
-        return 'role' in self.delta
+        return self.delta.role is not None
 
     def execute(self, bot_backend: BotBackend, history: List, whether_exit: bool):
-        bot_backend.set_assistant_role_name(assistant_role_name=self.delta['role'])
+        bot_backend.set_assistant_role_name(assistant_role_name=self.delta.role)
         return history, whether_exit
 
 
 class ContentChoiceStrategy(ChoiceStrategy):
     def support(self):
-        return 'content' in self.delta and self.delta['content'] is not None
+        return self.delta.content is not None
         # null value of content often occur in function call:
         #     {
         #       "role": "assistant",
@@ -39,19 +39,19 @@ class ContentChoiceStrategy(ChoiceStrategy):
         #     }
 
     def execute(self, bot_backend: BotBackend, history: List, whether_exit: bool):
-        bot_backend.add_content(content=self.delta.get('content', ''))
+        bot_backend.add_content(content=self.delta.content)
         history[-1][1] = bot_backend.content
         return history, whether_exit
 
 
 class NameFunctionCallChoiceStrategy(ChoiceStrategy):
     def support(self):
-        return 'function_call' in self.delta and 'name' in self.delta['function_call']
+        return self.delta.tool_calls is not None and self.delta.tool_calls[0].function.name is not None
 
     def execute(self, bot_backend: BotBackend, history: List, whether_exit: bool):
         python_function_dict = bot_backend.jupyter_kernel.available_functions
         additional_tools = bot_backend.additional_tools
-        bot_backend.set_function_name(function_name=self.delta['function_call']['name'])
+        bot_backend.set_function_name(function_name=self.delta.tool_calls[0].function.name)
         bot_backend.copy_current_bot_history(bot_history=history)
         if bot_backend.function_name not in python_function_dict and bot_backend.function_name not in additional_tools:
             history.append(
@@ -69,10 +69,10 @@ class NameFunctionCallChoiceStrategy(ChoiceStrategy):
 class ArgumentsFunctionCallChoiceStrategy(ChoiceStrategy):
 
     def support(self):
-        return 'function_call' in self.delta and 'arguments' in self.delta['function_call']
+        return self.delta.tool_calls is not None and self.delta.tool_calls[0].function.arguments is not None
 
     def execute(self, bot_backend: BotBackend, history: List, whether_exit: bool):
-        bot_backend.add_function_args_str(function_args_str=self.delta['function_call']['arguments'])
+        bot_backend.add_function_args_str(function_args_str=self.delta.tool_calls[0].function.arguments)
 
         if bot_backend.function_name == 'python':  # handle hallucinatory function calls
             """
@@ -109,15 +109,15 @@ class ArgumentsFunctionCallChoiceStrategy(ChoiceStrategy):
 
 class FinishReasonChoiceStrategy(ChoiceStrategy):
     def support(self):
-        return self.choice['finish_reason'] is not None
+        return self.choice.finish_reason is not None
 
     def execute(self, bot_backend: BotBackend, history: List, whether_exit: bool):
 
         if bot_backend.content:
             bot_backend.add_gpt_response_content_message()
 
-        bot_backend.update_finish_reason(finish_reason=self.choice['finish_reason'])
-        if bot_backend.finish_reason == 'function_call':
+        bot_backend.update_finish_reason(finish_reason=self.choice.finish_reason)
+        if bot_backend.finish_reason == 'tool_calls':
 
             if bot_backend.function_name in bot_backend.jupyter_kernel.available_functions:
                 history, whether_exit = self.handle_execute_code_finish_reason(
@@ -247,8 +247,8 @@ def parse_response(chunk, history: List, bot_backend: BotBackend):
     :return: history, whether_exit
     """
     whether_exit = False
-    if chunk['choices']:
-        choice = chunk['choices'][0]
+    if chunk.choices:
+        choice = chunk.choices[0]
         choice_handler = ChoiceHandler(choice=choice)
         history, whether_exit = choice_handler.handle(
             history=history,

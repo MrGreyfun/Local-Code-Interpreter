@@ -37,12 +37,12 @@ Executing AI-generated code without human review on your own device is not safe.
    ```text
    Jupyter Notebook    6.5.4
    gradio              3.39.0
-   openai              0.27.8
+   openai              1.40.3
    ansi2html           1.8.0
    tiktoken            0.3.3
    Pillow              9.4.0
    ```
-   Other systems or package versions may also work. Please note that you should not update the `openai` package to the latest `1.x` version, as it has been rewritten and is not compatible with older versions.
+   Other systems or package versions may also work.
    You can use the following command to directly install the required packages:
    ```shell
    pip install -r requirements.txt
@@ -66,6 +66,12 @@ Please Note:
     - `gpt-4-0613` (and its 32K version)
     - `gpt-4-1106-preview` 
     - `gpt-4-0125-preview`
+    - `gpt-4-turbo`
+    - `gpt-4o`
+    - `gpt-4o-2024-05-13`
+    - `gpt-4o-2024-08-06`
+    - `gpt-4o-mini`
+    - `gpt-4o-mini-2024-07-18`
 
     Older versions of the models will not work. Note that `gpt-4-vision-preview` lacks support for function calling, therefore, it should not be set as `GPT-4` model. 
 
@@ -124,8 +130,6 @@ Please Note:
    python web_ui.py -n <path_to_notebook>
    ```
 ## TO DO (Pull requests welcome)
-- [ ] Migrate to `openai` version 1.x
-- [ ] Replace "function call" to "tool call" in code and prompt
 - [ ] Update to the latest version of `gradio`
 
 ## Example

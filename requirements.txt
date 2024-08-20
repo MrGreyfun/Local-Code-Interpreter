@@ -1,5 +1,5 @@
 notebook==6.5.4
-openai==0.27.8
+openai==1.40.3
 gradio==3.39.0
 ansi2html==1.8.0
 tiktoken
