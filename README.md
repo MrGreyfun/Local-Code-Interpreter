@@ -66,8 +66,11 @@ Please Note:
     - `gpt-4-0613` (and its 32K version)
     - `gpt-4-1106-preview` 
     - `gpt-4-0125-preview`
+    - `gpt-4-turbo`
+    - `gpt-4o`
     - `gpt-4o-2024-05-13`
     - `gpt-4o-2024-08-06`
+    - `gpt-4o-mini`
     - `gpt-4o-mini-2024-07-18`
 
     Older versions of the models will not work. Note that `gpt-4-vision-preview` lacks support for function calling, therefore, it should not be set as `GPT-4` model. 

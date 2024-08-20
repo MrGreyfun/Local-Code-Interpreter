@@ -64,8 +64,11 @@ OpenAI的ChatGPT代码解释器（Code Interpreter，现更名为Advanced Data A
     - `gpt-4-0613` (及其32K版本)
     - `gpt-4-1106-preview` 
     - `gpt-4-0125-preview`
+    - `gpt-4-turbo`
+    - `gpt-4o`
     - `gpt-4o-2024-05-13`
     - `gpt-4o-2024-08-06`
+    - `gpt-4o-mini`
     - `gpt-4o-mini-2024-07-18`
 
    旧版本的模型将无法使用。请注意，`gpt-4-vision-preview`模型同样不支持函数调用，因此不能将其设置为`GPT-4`模型。
